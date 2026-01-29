@@ -20,6 +20,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->pages([
                 \App\Providers\Filament\Pages\Dashboard::class,
+                // \App\Filament\Pages\GeneralSettings::class, // Hidden temporarily
             ])
             ->resources([
                 \App\Filament\Resources\AdminResource::class,
@@ -28,10 +29,6 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Resources\OrderResource::class,
                 \App\Filament\Resources\CategoryResource::class,
                 \App\Filament\Resources\BannerResource::class,
-            ])
-            ->pages([
-                \App\Providers\Filament\Pages\Dashboard::class,
-                // \App\Filament\Pages\GeneralSettings::class, // Hidden temporarily
             ])
             ->authGuard('admin')
             ->middleware([

@@ -32,9 +32,9 @@ class DatabaseSeeder extends Seeder
             'role' => 'customer',
         ]);
 
-        // Conditionally run the test order seeder
-        if (app()->environment('local') || env('SEED_TEST_ORDER', false)) {
-            $this->call(TestFirstOrderSeeder::class);
-        }
+        // Skip test order seeder in Docker
+        // if (app()->environment('local') || env('SEED_TEST_ORDER', false)) {
+        //     $this->call(TestFirstOrderSeeder::class);
+        // }
     }
 }

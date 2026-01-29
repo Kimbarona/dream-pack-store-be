@@ -16,7 +16,7 @@ return [
     'sets' => [
         'heroicons' => [
             'path' => 'vendor/blade-ui-kit/blade-heroicons/resources/svg',
-            'prefix' => 'heroicon',
+            'prefix' => 'heroicons',
         ],
 
         // 'default' => [

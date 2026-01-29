@@ -30,9 +30,12 @@ class CategoryResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('parent_id')
-                    ->relationship('parent', 'name'),
+                Forms\Components\TextInput::make('parent_id')
+                    ->label('Category')
+                    ->required()
+                    ->maxLength(255),
                 Forms\Components\TextInput::make('name')
+                    ->label('Sub-Category')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('slug')
@@ -57,11 +60,13 @@ class CategoryResource extends Resource
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['parent']))
-            ->columns([
+->columns([
                 Tables\Columns\TextColumn::make('parent.name')
+                    ->label('Category')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('name')
+                    ->label('Sub-Category')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable(),

@@ -3,10 +3,12 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Order;
-use Filament\Widgets\Widget;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Support\Carbon;
 
-class RecentOrdersSimpleWidget extends Widget
+class RecentOrdersSimpleWidget extends BaseWidget
 {
     protected static ?int $sort = 4;
     
@@ -14,31 +16,54 @@ class RecentOrdersSimpleWidget extends Widget
     
     protected int | string | array $columnSpan = 'full';
     
-    protected static string $view = 'filament.widgets.recent-orders-simple';
-    
-    public function getRecentOrders()
+    public function table(Table $table): Table
     {
         $dateFrom = request()->get('date_from');
         $dateTo = request()->get('date_to');
         
-        return Order::query()
-            ->when($dateFrom, fn ($query) => $query->whereDate('created_at', '>=', $dateFrom))
-            ->when($dateTo, fn ($query) => $query->whereDate('created_at', '<=', $dateTo))
-            ->with(['user'])
-            ->latest()
-            ->limit(10)
-            ->get();
-    }
-    
-    public function getStatusColor($status)
-    {
-        return match($status) {
-            'pending_payment' => 'warning',
-            'paid_confirmed' => 'success',
-            'processing' => 'info',
-            'shipped' => 'primary',
-            'cancelled' => 'danger',
-            default => 'secondary'
-        };
+        return $table
+            ->query(
+                Order::query()
+                    ->when($dateFrom, fn ($query) => $query->whereDate('created_at', '>=', $dateFrom))
+                    ->when($dateTo, fn ($query) => $query->whereDate('created_at', '<=', $dateTo))
+                    ->with(['user'])
+                    ->latest()
+                    ->limit(10)
+            )
+            ->columns([
+                Tables\Columns\TextColumn::make('order_number')
+                    ->label('Order #')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Customer')
+                    ->default('Guest'),
+                Tables\Columns\TextColumn::make('total')
+                    ->money()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn ($state): string => match ($state) {
+                        'pending_payment' => 'warning',
+                        'paid_confirmed' => 'success',
+                        'processing' => 'info',
+                        'shipped' => 'primary',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn ($state) => str_replace('_', ' ', ucfirst($state))),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Date')
+                    ->dateTime('M j, Y g:i A')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('items_count')
+                    ->label('Items')
+                    ->counts('items'),
+            ])
+            ->actions([
+                Tables\Actions\Action::make('view')
+                    ->url(fn (Order $record): string => route('filament.admin.resources.orders.edit', $record))
+                    ->label('View')
+                    ->icon('heroicon-m-eye'),
+            ]);
     }
 }

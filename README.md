@@ -1,59 +1,190 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Dream Pack Ecommerce - Laravel + Filament 3
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A modern e-commerce platform built with Laravel 11 and Filament 3 admin panel, optimized for Render deployment.
 
-## About Laravel
+## 🚀 Quick Start
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Local Development with Docker
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+1. **Clone and setup:**
+```bash
+git clone <repository-url>
+cd dream-pack-ecommerce
+```
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+2. **Start containers:**
+```bash
+docker-compose up -d
+```
 
-## Learning Laravel
+3. **Access your application:**
+- 🌐 Frontend: http://localhost:10000
+- 🔧 Admin Panel: http://localhost:10000/admin
+- 🗄️ Database: localhost:5433
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Default Admin Credentials
+- **Email:** test@example.com
+- **Password:** password
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 📦 Render Deployment
 
-## Laravel Sponsors
+### Automatic Deployment
+1. **Push to GitHub** - Connect your repository to Render
+2. **Create Web Service** - Use the provided `render.yaml`
+3. **Deploy** - Automatic deployment on push to main branch
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Manual Deployment
+```bash
+./deploy.sh
+```
 
-### Premium Partners
+### Environment Variables (Render)
+The `render.yaml` includes all necessary environment variables:
+- Database connection (PostgreSQL)
+- Redis for caching/sessions
+- Production optimizations
+- Security settings
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 🏗️ Architecture
 
-## Contributing
+### Docker Components
+- **Dockerfile** - Production-ready PHP 8.4 + FPM + Nginx
+- **docker-compose.yml** - Local development setup
+- **entrypoint.prod.sh** - Production deployment script
+- **.dockerignore** - Optimized build context
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Key Features
+- ✅ **Filament 3 Admin Panel** - Modern admin interface
+- ✅ **PostgreSQL 16** - Robust database
+- ✅ **Redis Caching** - Performance optimization
+- ✅ **File Uploads** - Product images, banners
+- ✅ **User Management** - Authentication and authorization
+- ✅ **Responsive Design** - Mobile-friendly interface
 
-## Code of Conduct
+## 🛠️ Development Commands
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Docker Management
+```bash
+# Start containers
+docker-compose up -d
 
-## Security Vulnerabilities
+# Stop containers
+docker-compose down
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# View logs
+docker-compose logs -f app
 
-## License
+# Access container
+docker-compose exec app sh
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Laravel Commands
+```bash
+# Run migrations
+php artisan migrate
+
+# Clear caches
+php artisan cache:clear
+
+# Create admin user
+php artisan make:filament-user
+
+# Optimize for production
+php artisan optimize
+```
+
+## 📁 Project Structure
+
+```
+dream-pack-ecommerce/
+├── app/                    # Laravel application code
+├── database/               # Migrations and seeders
+├── filament/               # Filament admin panels
+├── public/                 # Public assets
+├── resources/              # Views and frontend assets
+├── routes/                 # Application routes
+├── storage/                # File storage
+├── docker/                 # Docker configuration
+│   ├── entrypoint.sh       # Development entrypoint
+│   └── entrypoint.prod.sh  # Production entrypoint
+├── docker-compose.yml      # Local development
+├── Dockerfile              # Production image
+├── render.yaml             # Render deployment config
+└── deploy.sh              # Quick deployment script
+```
+
+## 🔧 Configuration
+
+### Environment Files
+- `.env` - Local development
+- `.env.example` - Template
+- Render uses environment variables from `render.yaml`
+
+### Database Configuration
+- **Development**: PostgreSQL via Docker Compose
+- **Production**: Render PostgreSQL service
+
+### Caching Strategy
+- **Development**: File cache
+- **Production**: Redis for sessions and cache
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+1. **Composer timeout during build**
+   - Increase memory limit in Dockerfile
+   - Use `COMPOSER_MEMORY_LIMIT=-1`
+
+2. **Database connection errors**
+   - Verify database service is running
+   - Check connection string in environment
+
+3. **Filament assets not loading**
+   - Run `php artisan filament:assets`
+   - Clear browser cache
+
+4. **Permission issues**
+   - Ensure storage directories are writable
+   - Check file ownership
+
+### Logs and Monitoring
+
+```bash
+# Application logs
+docker-compose logs app
+
+# Nginx logs (production)
+docker exec <container> tail -f /var/log/nginx/error.log
+
+# PHP-FPM logs
+docker exec <container> tail -f /var/log/php8.4-fpm.log
+```
+
+## 🔐 Security
+
+- Environment variables for secrets
+- Production optimizations enabled
+- File upload restrictions
+- CSRF protection enabled
+- SQL injection prevention via Eloquent
+
+## 📈 Performance Optimizations
+
+- OPcache enabled
+- Route and view caching
+- Redis for sessions and cache
+- Gzip compression (Nginx)
+- File minification and concatenation
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is open-sourced software licensed under the MIT license.

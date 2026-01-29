@@ -36,17 +36,32 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+# Fix git "dubious ownership" warning (optional)
+RUN git config --global --add safe.directory /var/www/html
+
 # Copy composer files first for better caching
 COPY composer.json composer.lock ./
 
-# Install Composer dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+# Install Composer dependencies without scripts
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress --no-scripts
 
 # Copy the rest of the project
 COPY . .
 
+# Ensure Laravel cache paths exist + permissions before artisan runs
+RUN mkdir -p storage/framework/{cache,sessions,views} \
+    storage/framework/cache/data \
+ && chmod -R 775 storage bootstrap/cache
+
 # Ensure storage and bootstrap/cache are writable
 RUN chmod -R 775 storage bootstrap/cache
+
+# Create cache directories and clear existing cache
+RUN mkdir -p bootstrap/cache storage/framework/{cache,sessions,views} \
+    && rm -rf bootstrap/cache/*.php
+
+# Optimize autoloader (package discovery will run in entrypoint)
+RUN composer dump-autoload --optimize --no-scripts
 
 # Copy and make executable entrypoint script
 COPY entrypoint.sh /entrypoint.sh

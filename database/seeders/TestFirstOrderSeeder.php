@@ -115,6 +115,12 @@ class TestFirstOrderSeeder extends Seeder
     {
         $this->command->info('Creating test order...');
 
+        // Reset order sequence for PostgreSQL
+        $maxOrderId = Order::max('id') ?? 0;
+        if ($maxOrderId < 1) {
+            DB::statement("ALTER SEQUENCE orders_id_seq RESTART WITH 1");
+        }
+
         $shippingAddress = [
             'first_name' => 'Test',
             'last_name' => 'Customer',

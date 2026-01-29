@@ -4,21 +4,15 @@ namespace App\Filament\Widgets;
 
 use App\Models\Order;
 use App\Models\Product;
-use Filament\Widgets\Widget;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
 
-class SimpleStatsWidget extends Widget
+class SimpleStatsWidget extends BaseWidget
 {
     protected static ?int $sort = 2;
     
-    protected static ?string $heading = 'Store Statistics';
-    
-    protected int | string | array $columnSpan = 'full';
-    
-    protected static string $view = 'filament.widgets.simple-stats';
-    
-    public function getData()
+    protected function getStats(): array
     {
         $dateFrom = request()->get('date_from');
         $dateTo = request()->get('date_to');
@@ -59,14 +53,22 @@ class SimpleStatsWidget extends Widget
             ->count();
         
         return [
-            'totalProducts' => $totalProducts,
-            'activeProducts' => $activeProducts,
-            'totalOrders' => $totalOrders,
-            'totalRevenue' => $totalRevenue,
-            'pendingOrders' => $pendingOrders,
-            'paidOrders' => $paidOrders,
-            'fromDate' => $from,
-            'toDate' => $to,
+            Stat::make('Total Products', $totalProducts)
+                ->description("{$activeProducts} active")
+                ->descriptionIcon('heroicon-m-cube')
+                ->color('primary'),
+            Stat::make('Total Orders', $totalOrders)
+                ->description("{$pendingOrders} pending")
+                ->descriptionIcon('heroicon-m-shopping-bag')
+                ->color('warning'),
+            Stat::make('Paid Orders', $paidOrders)
+                ->description($from->format('M j') . ' - ' . $to->format('M j'))
+                ->descriptionIcon('heroicon-m-check-circle')
+                ->color('success'),
+            Stat::make('Total Revenue', '$' . number_format($totalRevenue, 2))
+                ->description('In selected date range')
+                ->descriptionIcon('heroicon-m-banknotes')
+                ->color('success'),
         ];
     }
 }

@@ -1,0 +1,77 @@
+services:
+  # Web Service
+  - type: web
+    name: dream-pack-ecommerce
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    region: oregon
+    branch: main
+    rootDir: .
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: APP_NAME
+        value: Dream Pack Ecommerce
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        value: https://dream-pack-ecommerce.onrender.com
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: warning
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        value: RENDER_POSTGRES_DB_HOST
+      - key: DB_PORT
+        value: 5432
+      - key: DB_DATABASE
+        value: RENDER_POSTGRES_DB_NAME
+      - key: DB_USERNAME
+        value: RENDER_POSTGRES_DB_USER
+      - key: DB_PASSWORD
+        value: RENDER_POSTGRES_DB_PASSWORD
+      - key: BROADCAST_DRIVER
+        value: log
+      - key: CACHE_DRIVER
+        value: redis
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: SESSION_DRIVER
+        value: redis
+      - key: MEMCACHED_HOST
+        value: 127.0.0.1
+      - key: REDIS_URL
+        value: RENDER_REDIS_URL
+
+  # PostgreSQL Database
+  - type: pserv
+    name: postgres
+    env: docker
+    dockerfilePath: ./docker/postgres/Dockerfile
+    plan: starter
+    region: oregon
+    branch: main
+    envVars:
+      - key: POSTGRES_DB
+        value: dream_pack_ecommerce
+      - key: POSTGRES_USER
+        value: dream_pack_user
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+
+  # Redis for caching and sessions
+  - type: redis
+    name: redis
+    plan: starter
+    region: oregon
+    ipAllowList: []

@@ -6,6 +6,7 @@ use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductColor;
+use App\Models\Category;
 use App\Filament\Traits\HasModuleAccess;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -72,6 +73,54 @@ return $form
                     ->required()
                     ->numeric()
                     ->default(1),
+                
+                Forms\Components\Section::make('Category')
+                    ->schema([
+                        Forms\Components\Select::make('category_id')
+                            ->label('Category')
+                            ->options(function () {
+                                return Category::whereNull('parent_id')
+                                    ->active()
+                                    ->ordered()
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            })
+                            ->searchable()
+                            ->placeholder('Select a category')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                $set('sub_category_display', null);
+                                $categoryId = $state;
+                                if ($categoryId) {
+                                    $subCategories = Category::where('parent_id', $categoryId)
+                                        ->active()
+                                        ->ordered()
+                                        ->pluck('name', 'id')
+                                        ->toArray();
+                                    
+                                    if (!empty($subCategories)) {
+                                        $set('sub_category_display', implode(', ', array_values($subCategories)));
+                                    } else {
+                                        $set('sub_category_display', 'No sub-categories');
+                                    }
+                                }
+                            }),
+                        Forms\Components\TextInput::make('sub_category_display')
+                            ->label('Sub-Category')
+                            ->readOnly()
+                            ->placeholder('Select a category first')
+                            ->dehydrated(false),
+                        Forms\Components\Select::make('categories')
+                            ->label('Assign Categories')
+                            ->relationship('categories', 'name')
+                            ->multiple()
+                            ->searchable()
+                            ->helperText('Assign multiple categories to this product')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2)
+                    ->collapsible()
+                    ->collapsed(),
                 
                 Forms\Components\Section::make('Product Images')
                     ->description('Manage product images. The first image will be used as the featured image.')

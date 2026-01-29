@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use App\Models\Banner;
 use App\Models\BannerImage;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class BannerSeeder extends Seeder
 {
@@ -182,7 +183,7 @@ class BannerSeeder extends Seeder
             Storage::disk('public')->put($destinationPath, $sourceContent);
             
             // Determine if this should be a mobile image (20% chance)
-            $isMobile = (fake()->boolean(20) && $i > 0); // Don't make first image mobile
+            $isMobile = (rand(1, 100) <= 20 && $i > 0); // Don't make first image mobile
             
             // Create database record
             BannerImage::create([
