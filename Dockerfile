@@ -1,8 +1,11 @@
-# Use PHP 8.3 CLI image
-FROM php:8.3-cli
+# Use PHP 8.4 CLI image
+FROM php:8.4-cli
 
 # Set working directory
 WORKDIR /var/www/html
+
+# Set Composer memory limit to unlimited
+ENV COMPOSER_MEMORY_LIMIT=-1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -11,6 +14,10 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libpq-dev \
     libonig-dev \
+    libicu-dev \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
@@ -18,7 +25,13 @@ RUN docker-php-ext-install \
     pdo \
     pdo_pgsql \
     mbstring \
-    zip
+    zip \
+    intl \
+    bcmath
+
+# Configure gd with freetype and jpeg support
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
+    docker-php-ext-install gd
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
