@@ -7,6 +7,15 @@ Route::get('/', function () {
     return redirect()->route('filament.admin.auth.login');
 });
 
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'timestamp' => now()->toISOString(),
+        'environment' => app()->environment(),
+        'version' => '1.0.0',
+    ]);
+});
+
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');

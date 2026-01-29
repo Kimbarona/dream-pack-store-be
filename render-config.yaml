@@ -1,0 +1,46 @@
+services:
+  # Production Web Service
+  - type: web
+    name: dream-pack-store
+    env: php
+    plan: starter
+    buildCommand: bash scripts/deploy.sh
+    startCommand: bash scripts/start.sh
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        value: https://dream-pack-store-be-1.onrender.com
+      - key: ASSET_URL
+        value: https://dream-pack-store-be-1.onrender.com
+      - key: SESSION_SECURE_COOKIE
+        value: true
+      - key: SESSION_ENCRYPT
+        value: true
+      - key: BROADCAST_DRIVER
+        value: log
+      - key: CACHE_DRIVER
+        value: file
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: LOG_CHANNEL
+        value: stack
+      - key: LOG_LEVEL
+        value: error
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: SESSION_DRIVER
+        value: file
+
+  # PostgreSQL Database Service
+  - type: pserv
+    name: dream-pack-db
+    env: postgres
+    plan: starter
+    user: postgres
+    databases:
+      - name: dream_pack_db
+    connectionLimit: 20

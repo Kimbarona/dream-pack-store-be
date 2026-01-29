@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\RedirectIfNotAdmin::class,
+            \App\Http\Middleware\TrustProxies::class,
         ]);
 
         $middleware->alias([
