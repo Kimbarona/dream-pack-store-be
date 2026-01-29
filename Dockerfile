@@ -35,8 +35,12 @@ COPY . .
 # Ensure storage and bootstrap/cache are writable
 RUN chmod -R 775 storage bootstrap/cache
 
+# Copy and make executable entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Expose port (Render will set PORT env var)
 EXPOSE 10000
 
-# Start the application using PHP's built-in server
-CMD ["sh", "-c", "php -S 0.0.0.0:${PORT:-10000} -t public"]
+# Start the application using entrypoint script
+CMD ["/entrypoint.sh"]
