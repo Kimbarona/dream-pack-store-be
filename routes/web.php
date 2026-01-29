@@ -4,7 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return redirect()->route('filament.admin.auth.login');
 });
 
 Route::get('/dashboard', function () {
@@ -25,6 +25,11 @@ Route::get('/banner/preview/{banner}', function (\App\Models\Banner $banner) {
 })->name('banner.preview');
 
 require __DIR__.'/auth.php';
+
+// Apply admin authentication middleware
+Route::middleware(['web', 'redirect.if.not.admin'])->group(function () {
+    // Admin routes will be handled by Filament
+});
 
 // Session test route
 Route::get('/_session-test', function () {

@@ -10,9 +10,9 @@ use Filament\Forms\Form;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Hidden;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -34,6 +34,10 @@ class OrderResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
 
+    protected static ?string $navigationGroup = 'Store Management';
+
+    protected static ?int $navigationSort = 2;
+
     protected static ?string $label = 'Orders';
 
     protected static ?string $pluralLabel = 'Orders';
@@ -48,7 +52,20 @@ class OrderResource extends Resource
                         TextInput::make('order_number')
                             ->label('Order Number')
                             ->disabled()
-                            ->formatStateUsing(fn ($record) => $record->order_number ?? ''),
+                            ->default('Auto-generated'),
+
+                        Select::make('user_id')
+                            ->label('Customer')
+                            ->relationship('user', 'name')
+                            ->searchable()
+                            ->required()
+                            ->getSearchResultsUsing(function (string $search) {
+                                return \App\Models\User::where('name', 'like', "%{$search}%")
+                                    ->orWhere('email', 'like', "%{$search}%")
+                                    ->limit(50)
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            }),
 
                         Select::make('status')
                             ->label('Status')
@@ -61,57 +78,150 @@ class OrderResource extends Resource
                                 'cancelled' => 'Cancelled',
                             ])
                             ->required()
+                            ->default('pending_payment')
                             ->native(false),
+                    ]),
 
-                        Select::make('user_id')
-                            ->label('Customer')
-                            ->relationship('user', 'name')
-                            ->searchable()
-                            ->getSearchResultsUsing(function (string $search) {
-                                return \App\Models\User::where('name', 'like', "%{$search}%")
-                                    ->orWhere('email', 'like', "%{$search}%")
-                                    ->limit(50)
-                                    ->get()
-                                    ->map(fn ($user) => [
-                                        'name' => $user->name . ' (' . $user->email . ')',
-                                        'value' => $user->id,
-                                    ]);
-                            })
-                            ->getOptionLabelUsing(fn ($value) => 
-                                optional(\App\Models\User::find($value), fn ($user) => $user->name)
-                            ),
+                Section::make('Order Items')
+                    ->description('Add products to this order')
+                    ->schema([
+                        Repeater::make('items')
+                            ->label('Items')
+                            ->relationship()
+                            ->schema([
+                                Select::make('product_id')
+                                    ->label('Product')
+                                    ->required()
+                                    ->searchable()
+                                    ->getSearchResultsUsing(function (string $search) {
+                                        return \App\Models\Product::where('title', 'like', "%{$search}%")
+                                            ->orWhere('sku', 'like', "%{$search}%")
+                                            ->where('is_active', true)
+                                            ->limit(50)
+                                            ->get()
+                                            ->mapWithKeys(function ($product) {
+                                                return [$product->id => $product->title . ' (SKU: ' . $product->sku . ') - $' . number_format($product->price, 2)];
+                                            })
+                                            ->toArray();
+                                    })
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                        $product = \App\Models\Product::find($state);
+                                        if ($product) {
+                                            $set('product_title', $product->title);
+                                            $set('product_sku', $product->sku);
+                                            $set('unit_price', $product->price);
+                                            $set('pieces_per_package', $product->pieces_per_package);
+                                            
+                                            $quantity = (int) ($get('quantity') ?? 1);
+                                            $set('total_price', $product->price * $quantity);
+                                        }
+                                    }),
+
+                                Hidden::make('product_title'),
+
+                                Hidden::make('product_sku'),
+
+                                TextInput::make('quantity')
+                                    ->label('Quantity')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(1)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                        $unitPrice = (float) ($get('unit_price') ?? 0);
+                                        $quantity = (int) ($state ?? 1);
+                                        $set('total_price', $unitPrice * $quantity);
+                                    }),
+
+                                TextInput::make('unit_price')
+                                    ->label('Unit Price')
+                                    ->numeric()
+                                    ->prefix('$')
+                                    ->readOnly()
+                                    ->required()
+                                    ->default(0)
+                                    ->dehydrateStateUsing(fn ($state) => (float) ($state ?? 0)),
+
+                                TextInput::make('total_price')
+                                    ->label('Total Price')
+                                    ->numeric()
+                                    ->prefix('$')
+                                    ->disabled()
+                                    ->dehydrateStateUsing(fn ($state) => $state ?? 0),
+
+                                TextInput::make('size')
+                                    ->label('Size')
+                                    ->placeholder('M, L, XL, etc.'),
+
+                                TextInput::make('chosen_color')
+                                    ->label('Color')
+                                    ->placeholder('Red, Blue, etc.'),
+
+                                TextInput::make('pieces_per_package')
+                                    ->label('Pieces per Package')
+                                    ->numeric()
+                                    ->default(1)
+                                    ->minValue(1),
+                            ])
+                            ->columns(3)
+                            ->collapsible()
+                            ->collapsed()
+                            ->itemLabel(fn (array $state): ?string => 
+                                isset($state['product_title']) 
+                                    ? $state['product_title'] . ' (Qty: ' . ($state['quantity'] ?? 1) . ')' 
+                                    : null
+                            )
+                            ->addActionLabel('Add Item')
+                            ->defaultItems(0),
                     ]),
 
                 Section::make('Financial Information')
-                    ->columns(3)
+                    ->columns(2)
                     ->schema([
-                        TextInput::make('subtotal')
-                            ->label('Subtotal')
-                            ->disabled()
-                            ->prefix('$')
-                            ->numeric()
-                            ->formatStateUsing(fn ($record) => number_format($record->subtotal, 2)),
-
                         TextInput::make('tax_amount')
                             ->label('Tax Amount')
-                            ->disabled()
-                            ->prefix('$')
                             ->numeric()
-                            ->formatStateUsing(fn ($record) => number_format($record->tax_amount, 2)),
+                            ->prefix('$')
+                            ->default(0),
 
                         TextInput::make('shipping_amount')
                             ->label('Shipping Amount')
-                            ->disabled()
-                            ->prefix('$')
                             ->numeric()
-                            ->formatStateUsing(fn ($record) => number_format($record->shipping_amount, 2)),
+                            ->prefix('$')
+                            ->default(0),
 
                         TextInput::make('total')
                             ->label('Total')
-                            ->disabled()
-                            ->prefix('$')
                             ->numeric()
-                            ->formatStateUsing(fn ($record) => number_format($record->total, 2)),
+                            ->prefix('$')
+                            ->disabled(),
+                    ]),
+
+                Section::make('Shipping Address')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('shipping_address.address_line_1')
+                            ->label('Address Line 1')
+                            ->required(),
+                        TextInput::make('shipping_address.address_line_2')
+                            ->label('Address Line 2'),
+                        TextInput::make('shipping_address.city')
+                            ->label('City')
+                            ->required(),
+                        TextInput::make('shipping_address.state')
+                            ->label('State')
+                            ->required(),
+                        TextInput::make('shipping_address.postal_code')
+                            ->label('Postal Code')
+                            ->required(),
+                        TextInput::make('shipping_address.country')
+                            ->label('Country')
+                            ->default('US')
+                            ->required(),
+                        TextInput::make('shipping_address.phone')
+                            ->label('Phone'),
                     ]),
 
                 Section::make('Order Notes')
@@ -120,23 +230,7 @@ class OrderResource extends Resource
                             ->label('Order Notes')
                             ->rows(3),
                     ]),
-            ])
-            ->afterSave(function ($record, $data) {
-                // Handle status transitions with proper business logic
-                if (isset($data['status']) && $data['status'] !== $record->getOriginal('status')) {
-                    try {
-                        $record->transitionStatus($data['status']);
-                    } catch (\Exception $e) {
-                        // Log error but don't fail the save
-                        \Log::error('Order status transition failed', [
-                            'order_id' => $record->id,
-                            'old_status' => $record->getOriginal('status'),
-                            'new_status' => $data['status'],
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                }
-            });
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -194,6 +288,7 @@ class OrderResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultPaginationPageOption(25)
             ->filters([
                 SelectFilter::make('status')
                     ->label('Status')
@@ -218,6 +313,7 @@ class OrderResource extends Resource
                         ->visible(fn () => static::canDeleteAny()),
                 ]),
             ])
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'items']))
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Search orders...');
     }
@@ -225,7 +321,7 @@ class OrderResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // Relation managers will be added here when needed
+            //
         ];
     }
 
@@ -233,6 +329,7 @@ class OrderResource extends Resource
     {
         return [
             'index' => Pages\ListOrders::route('/'),
+            'create' => Pages\CreateOrder::route('/create'),
             'view' => Pages\ViewOrder::route('/{record}'),
             'edit' => Pages\EditOrder::route('/{record}/edit'),
         ];
@@ -243,29 +340,93 @@ class OrderResource extends Resource
         return static::canAccessResource('orders');
     }
 
-    public static function canView($record): bool
+public static function canView($record): bool
     {
         $user = Auth::guard('admin')->user();
-        return $user && $user->hasPermissionTo('orders.view');
+        
+        // If no user is authenticated, deny access
+        if (!$user) {
+            return false;
+        }
+        
+        // Super admins can view all orders
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+        
+        // Regular users can view orders they have permission for
+        return $user->hasPermissionTo('orders.view');
     }
 
     public static function canEdit($record): bool
     {
         $user = Auth::guard('admin')->user();
-        return $user && $user->hasPermissionTo('orders.update');
+        
+        // If no user is authenticated, deny access
+        if (!$user) {
+            return false;
+        }
+        
+        // Super admins can edit all orders
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+        
+        // Regular users can edit orders they have permission for
+        return $user->hasPermissionTo('orders.update');
     }
 
     public static function canDelete($record): bool
     {
         $user = Auth::guard('admin')->user();
-        // Only super admins can delete orders
-        return $user && $user->hasPermissionTo('orders.delete') && $user->hasRole('Super Admin');
+        
+        // If no user is authenticated, deny access
+        if (!$user) {
+            return false;
+        }
+        
+        // Super admins can delete all orders
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+        
+        // Regular users can delete orders they have permission for
+        return $user->hasPermissionTo('orders.delete');
     }
 
     public static function canDeleteAny(): bool
     {
         $user = Auth::guard('admin')->user();
-        // Only super admins can delete orders
-        return $user && $user->hasPermissionTo('orders.delete') && $user->hasRole('Super Admin');
+        
+        // If no user is authenticated, deny access
+        if (!$user) {
+            return false;
+        }
+        
+        // Super admins can delete all orders
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+        
+        // Regular users can delete orders they have permission for
+        return $user->hasPermissionTo('orders.delete');
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = Auth::guard('admin')->user();
+        
+        // If no user is authenticated, deny access
+        if (!$user) {
+            return false;
+        }
+        
+        // Super admins can create all orders
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+        
+        // Regular users can create orders they have permission for
+        return $user->hasPermissionTo('orders.create');
     }
 }

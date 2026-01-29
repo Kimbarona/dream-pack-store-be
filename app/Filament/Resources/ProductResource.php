@@ -4,6 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
+use App\Models\ProductImage;
+use App\Models\ProductColor;
 use App\Filament\Traits\HasModuleAccess;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -13,6 +15,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 
 class ProductResource extends Resource
 {
@@ -20,11 +23,15 @@ class ProductResource extends Resource
 
     protected static ?string $model = Product::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-cube';
+
+    protected static ?string $navigationGroup = 'Store Management';
+
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
-        return $form
+return $form
             ->schema([
                 Forms\Components\TextInput::make('title')
                     ->required()
@@ -65,23 +72,112 @@ class ProductResource extends Resource
                     ->required()
                     ->numeric()
                     ->default(1),
+                
+                Forms\Components\Section::make('Product Images')
+                    ->description('Manage product images. The first image will be used as the featured image.')
+                    ->schema([
+                        Forms\Components\Repeater::make('images')
+                            ->relationship()
+                            ->schema([
+                                Forms\Components\FileUpload::make('path')
+                                    ->label('Image')
+                                    ->image()
+                                    ->imageEditor()
+                                    ->directory('products')
+                                    ->visibility('public')
+                                    ->disk('public')
+                                    ->required()
+                                    ->columnSpanFull(),
+                                Forms\Components\TextInput::make('alt_text')
+                                    ->label('Alt Text')
+                                    ->helperText('Describe the image for SEO and accessibility')
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('sort_order')
+                                    ->label('Sort Order')
+                                    ->numeric()
+                                    ->default(0),
+                                Forms\Components\Toggle::make('is_featured')
+                                    ->label('Featured Image')
+                                    ->helperText('Check to make this the featured product image'),
+                            ])
+                            ->columns(3)
+                            ->collapsed()
+                            ->collapsible()
+                            ->itemLabel(fn (array $state): ?string => $state['alt_text'] ?? 'New Image')
+                            ->orderable('sort_order')
+                            ->reorderableWithButtons()
+                            ->addable('Add Image')
+                            ->deletable('Remove Image'),
+                    ])
+                    ->collapsible()
+                    ->collapsed(),
+
+                Forms\Components\Section::make('Product Colors')
+                    ->description('Define product color variations with optional images.')
+                    ->schema([
+                        Forms\Components\Repeater::make('colors')
+                            ->relationship()
+                            ->schema([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Color Name')
+                                    ->required()
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('hex')
+                                    ->label('Hex Color')
+                                    ->required()
+                                    ->helperText('Example: #FF0000')
+                                    ->maxLength(7),
+                                Forms\Components\FileUpload::make('image_path')
+                                    ->label('Color Image (Optional)')
+                                    ->image()
+                                    ->imageEditor()
+                                    ->directory('product-colors')
+                                    ->visibility('public')
+                                    ->disk('public')
+                                    ->columnSpanFull(),
+                                Forms\Components\TextInput::make('sort_order')
+                                    ->label('Sort Order')
+                                    ->numeric()
+                                    ->default(0),
+                            ])
+                            ->columns(2)
+                            ->collapsed()
+                            ->collapsible()
+                            ->itemLabel(fn (array $state): ?string => $state['name'] ?? 'New Color')
+                            ->orderable('sort_order')
+                            ->reorderableWithButtons()
+                            ->addable('Add Color')
+                            ->deletable('Remove Color'),
+                    ])
+                    ->collapsible()
+                    ->collapsed(),
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['featuredImage']))
             ->columns([
+                Tables\Columns\ImageColumn::make('featured_image_url')
+                    ->label('Image')
+                    ->size(60)
+                    ->circular()
+                    ->defaultImageUrl(url('/placeholder-product.png'))
+                    ->getStateUsing(fn (Product $record): ?string => $record->featured_image_url),
                 Tables\Columns\TextColumn::make('title')
-                    ->searchable(),
+                    ->searchable()
+                    ->limit(50),
                 Tables\Columns\TextColumn::make('slug')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('price')
                     ->money()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('sale_price')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('sku')
                     ->label('SKU')
                     ->searchable(),
@@ -89,17 +185,22 @@ class ProductResource extends Resource
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\IconColumn::make('track_inventory')
-                    ->boolean(),
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('sort_order')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('meta_title')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('pieces_per_package')
+                    ->label('PCS/Package')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -112,10 +213,12 @@ class ProductResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
+])
+            ->defaultPaginationPageOption(25)
             ->filters([
                 //
 ])
+            ->defaultPaginationPageOption(25)
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Active Status')

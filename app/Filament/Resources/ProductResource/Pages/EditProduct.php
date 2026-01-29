@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProductResource\Pages;
 
 use App\Filament\Resources\ProductResource;
+use App\Filament\Concerns\HasBackAction;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -10,6 +11,8 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditProduct extends EditRecord
 {
+    use HasBackAction;
+    
     protected static string $resource = ProductResource::class;
 
     public function form(Form $form): Form
@@ -24,5 +27,13 @@ class EditProduct extends EditRecord
         }
         
         return $data;
+    }
+    
+    protected function getHeaderActions(): array
+    {
+        return [
+            $this->backAction(),
+            ...parent::getHeaderActions(),
+        ];
     }
 }

@@ -16,11 +16,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            AdminSeeder::class,
-            AdminUserSeeder::class,
-            AttributeSeeder::class,
+            RolesAndPermissionsSeeder::class,
             CategorySeeder::class,
+            AdminSeeder::class,
+            CustomerSeeder::class,
             ProductSeeder::class,
+            BannerSeeder::class,
             SettingsSeeder::class,
         ]);
 
@@ -30,5 +31,10 @@ class DatabaseSeeder extends Seeder
             'email' => 'customer@example.com',
             'role' => 'customer',
         ]);
+
+        // Conditionally run the test order seeder
+        if (app()->environment('local') || env('SEED_TEST_ORDER', false)) {
+            $this->call(TestFirstOrderSeeder::class);
+        }
     }
 }

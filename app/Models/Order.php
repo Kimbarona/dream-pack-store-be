@@ -207,7 +207,7 @@ class Order extends Model
 
     public function recalculateTotals()
     {
-        $this->subtotal = $this->items()->sumRaw('quantity * unit_price');
+        $this->subtotal = $this->items()->sum('total_price');
         $this->total = $this->subtotal + $this->tax_amount + $this->shipping_amount;
         $this->save();
         

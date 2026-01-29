@@ -13,6 +13,7 @@ class ProductColor extends Model
         'name',
         'hex',
         'image_path',
+        'image_disk',
         'sort_order',
     ];
 

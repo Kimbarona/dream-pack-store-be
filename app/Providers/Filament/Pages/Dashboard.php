@@ -6,7 +6,7 @@ use Filament\Pages\Dashboard as BaseDashboard;
 
 class Dashboard extends BaseDashboard
 {
-    protected static ?int $navigationSort = 0;
+    protected static ?int $navigationSort = -1;
 
     protected static string | null $navigationIcon = 'heroicon-o-home';
 
@@ -14,6 +14,11 @@ class Dashboard extends BaseDashboard
 
     public function getWidgets(): array
     {
-        return [];
+        return [
+            \App\Filament\Widgets\DateFilterWidget::class,
+            \App\Filament\Widgets\SimpleStatsWidget::class,
+            \App\Filament\Widgets\RevenueChart::class,
+            \App\Filament\Widgets\RecentOrdersSimpleWidget::class,
+        ];
     }
 }

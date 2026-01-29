@@ -16,26 +16,29 @@ class BannerController extends Controller
     {
         $limit = $request->get('limit', 10);
         
-        $banners = Banner::displayed()
+        $banners = Banner::with('images')
+            ->displayed()
             ->take($limit)
             ->get()
             ->map(function ($banner) {
                 return [
                     'id' => $banner->id,
+                    'name' => $banner->name,
                     'title' => $banner->title,
                     'subtitle' => $banner->subtitle,
-                    'image_url' => $banner->image_url,
-                    'image_mobile_url' => $banner->image_mobile_url,
                     'link_url' => $banner->link_url,
                     'sort_order' => $banner->sort_order,
+                    'images' => $banner->images->map(function ($image) {
+                        return [
+                            'url' => $image->url,
+                            'is_mobile' => $image->is_mobile,
+                            'sort_order' => $image->sort_order,
+                        ];
+                    }),
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'data' => $banners,
-            'count' => $banners->count(),
-        ]);
+        return response()->json($banners);
     }
 
     /**
@@ -43,19 +46,27 @@ class BannerController extends Controller
      */
     public function show(Banner $banner): JsonResponse
     {
+        $banner->load('images');
+        
         return response()->json([
             'success' => true,
             'data' => [
                 'id' => $banner->id,
+                'name' => $banner->name,
                 'title' => $banner->title,
                 'subtitle' => $banner->subtitle,
-                'image_url' => $banner->image_url,
-                'image_mobile_url' => $banner->image_mobile_url,
                 'link_url' => $banner->link_url,
                 'is_active' => $banner->is_active,
                 'sort_order' => $banner->sort_order,
                 'starts_at' => $banner->starts_at,
                 'ends_at' => $banner->ends_at,
+                'images' => $banner->images->map(function ($image) {
+                    return [
+                        'url' => $image->url,
+                        'is_mobile' => $image->is_mobile,
+                        'sort_order' => $image->sort_order,
+                    ];
+                }),
                 'created_at' => $banner->created_at,
             ],
         ]);

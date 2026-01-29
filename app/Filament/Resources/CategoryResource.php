@@ -20,7 +20,11 @@ class CategoryResource extends Resource
 
     protected static ?string $model = Category::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-tag';
+
+    protected static ?string $navigationGroup = 'Store Management';
+
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {
@@ -52,6 +56,7 @@ class CategoryResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['parent']))
             ->columns([
                 Tables\Columns\TextColumn::make('parent.name')
                     ->numeric()
@@ -79,7 +84,8 @@ class CategoryResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
+])
+            ->defaultPaginationPageOption(25)
             ->filters([
                 //
 ])

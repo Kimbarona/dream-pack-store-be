@@ -4,17 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Banner extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'name',
         'title',
         'subtitle',
-        'image_path',
-        'image_mobile_path',
         'link_url',
+        'image',
         'is_active',
         'sort_order',
         'starts_at',
@@ -26,7 +27,23 @@ class Banner extends Model
         'sort_order' => 'integer',
         'starts_at' => 'datetime',
         'ends_at' => 'datetime',
+        'image' => 'string',
     ];
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(BannerImage::class)->orderBy('sort_order');
+    }
+
+    public function desktopImages(): HasMany
+    {
+        return $this->images()->where('is_mobile', false);
+    }
+
+    public function mobileImages(): HasMany
+    {
+        return $this->images()->where('is_mobile', true);
+    }
 
     /**
      * Scope to get only active banners
@@ -56,22 +73,6 @@ class Banner extends Model
     public function scopeDisplayed($query)
     {
         return $query->active()->scheduled()->orderBy('sort_order', 'asc')->orderBy('created_at', 'desc');
-    }
-
-    /**
-     * Get the image URL
-     */
-    public function getImageUrlAttribute()
-    {
-        return asset($this->image_path);
-    }
-
-    /**
-     * Get the mobile image URL
-     */
-    public function getImageMobileUrlAttribute()
-    {
-        return $this->image_mobile_path ? asset($this->image_mobile_path) : $this->image_url;
     }
 
     /**

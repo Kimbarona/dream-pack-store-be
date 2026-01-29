@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProductResource\Pages;
 
 use App\Filament\Resources\ProductResource;
+use App\Filament\Concerns\HasBackAction;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -10,6 +11,8 @@ use Filament\Resources\Pages\CreateRecord;
 
 class CreateProduct extends CreateRecord
 {
+    use HasBackAction;
+    
     protected static string $resource = ProductResource::class;
 
     public function form(Form $form): Form
@@ -29,5 +32,13 @@ class CreateProduct extends CreateRecord
         $data['pieces_per_package'] = $data['pieces_per_package'] ?? 1;
         
         return $data;
+    }
+    
+    protected function getHeaderActions(): array
+    {
+        return [
+            $this->backAction(),
+            ...parent::getHeaderActions(),
+        ];
     }
 }

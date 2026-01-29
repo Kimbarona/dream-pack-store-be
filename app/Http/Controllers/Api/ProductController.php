@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ProductFilterRequest;
 use App\Http\Resources\Api\ProductResource;
+use App\Http\Resources\Api\ProductListResource;
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Http\Request;
@@ -21,7 +22,10 @@ class ProductController extends Controller
 
     public function index(ProductFilterRequest $request): JsonResource
     {
-        $query = Product::with(['categories', 'attributeValues.attribute', 'images'])
+        // Lightweight query for list views
+        $query = Product::with(['categories', 'images' => function($q) {
+                $q->where('is_featured', true)->limit(1);
+            }])
             ->where('is_active', true)
             ->whereNull('deleted_at');
 
@@ -103,7 +107,7 @@ class ProductController extends Controller
             ['title', 'description']
         );
 
-        return ProductResource::collection($products);
+        return ProductListResource::collection($products);
     }
 
     public function show(string $slug): JsonResponse

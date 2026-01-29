@@ -22,6 +22,12 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'phone',
+        'address',
+        'city',
+        'country',
+        'postal_code',
+        'is_active',
     ];
 
     /**
@@ -45,6 +51,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => 'string',
+            'is_active' => 'boolean',
         ];
     }
 

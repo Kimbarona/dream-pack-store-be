@@ -30,19 +30,20 @@ class ProductResource extends JsonResource
             
             // Attributes
             'size' => $this->size,
-            'available_colors' => $this->colors->map(fn($color) => [
-                'id' => $color->id,
-                'value' => $color->value,
-                'slug' => $color->slug,
-            ]),
             
             // Images
             'images' => $this->images->map(fn($image) => [
                 'id' => $image->id,
-                'path' => Storage::url($image->path),
+                'url' => $image->url,
+                'path' => $image->path,
                 'alt_text' => $image->alt_text,
                 'sort_order' => $image->sort_order,
+                'is_featured' => $image->is_featured ?? false,
             ]),
+            'featured_image' => $this->featured_image_url,
+            
+            // Colors with images
+            'available_colors' => $this->available_colors,
             
             // Categories
             'categories' => CategoryResource::collection($this->whenLoaded('categories')),

@@ -96,6 +96,14 @@ class Product extends Model
     }
 
     /**
+     * Relationship for featured image (optimized for Filament tables)
+     */
+    public function featuredImage()
+    {
+        return $this->hasOne(ProductImage::class)->where('is_featured', true);
+    }
+
+    /**
      * Get featured image URL
      */
     public function getFeaturedImageUrlAttribute(): ?string

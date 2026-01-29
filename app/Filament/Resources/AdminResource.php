@@ -28,6 +28,10 @@ class AdminResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
 
+    protected static ?string $navigationGroup = 'Accounts';
+
+    protected static ?int $navigationSort = 1;
+
     public static function form(Form $form): Form
     {
         return $form

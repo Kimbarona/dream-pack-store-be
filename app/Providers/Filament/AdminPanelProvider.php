@@ -23,13 +23,20 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->resources([
                 \App\Filament\Resources\AdminResource::class,
+                \App\Filament\Resources\UserResource::class,
                 \App\Filament\Resources\ProductResource::class,
                 \App\Filament\Resources\OrderResource::class,
                 \App\Filament\Resources\CategoryResource::class,
+                \App\Filament\Resources\BannerResource::class,
+            ])
+            ->pages([
+                \App\Providers\Filament\Pages\Dashboard::class,
+                // \App\Filament\Pages\GeneralSettings::class, // Hidden temporarily
             ])
             ->authGuard('admin')
             ->middleware([
                 'web',
+                'redirect.if.not.admin',
             ]);
     }
 }

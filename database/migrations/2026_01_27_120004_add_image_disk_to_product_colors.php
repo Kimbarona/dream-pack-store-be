@@ -8,15 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('permissions', function (Blueprint $table) {
-            $table->string('group')->nullable()->after('guard_name');
+        Schema::table('product_colors', function (Blueprint $table) {
+            $table->string('image_disk')->default('public')->after('image_path');
         });
     }
 
     public function down(): void
     {
-        Schema::table('permissions', function (Blueprint $table) {
-            $table->dropColumn('group');
+        Schema::table('product_colors', function (Blueprint $table) {
+            $table->dropColumn('image_disk');
         });
     }
 };

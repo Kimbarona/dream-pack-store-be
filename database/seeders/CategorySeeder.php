@@ -107,6 +107,48 @@ class CategorySeeder extends Seeder
                         ]
                     ]
                 ]
+            ],
+            [
+                'name' => 'Electronics',
+                'slug' => 'electronics',
+                'description' => 'Electronic devices and gadgets',
+                'sort_order' => 4,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Sports',
+                'slug' => 'sports',
+                'description' => 'Sports and fitness equipment',
+                'sort_order' => 5,
+                'is_active' => true,
+            ],
+[
+                'name' => 'General Clothing',
+                'slug' => 'general-clothing',
+                'description' => 'All clothing items',
+                'sort_order' => 6,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Fashion Accessories',
+                'slug' => 'fashion-accessories',
+                'description' => 'Fashion accessories',
+                'sort_order' => 7,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Fine Jewelry',
+                'slug' => 'fine-jewelry',
+                'description' => 'Jewelry items',
+                'sort_order' => 8,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Home & Living',
+                'slug' => 'home-living-2',
+                'description' => 'Home products',
+                'sort_order' => 9,
+                'is_active' => true,
             ]
         ];
 

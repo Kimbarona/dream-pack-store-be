@@ -5,14 +5,18 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Models\ProductSize;
+use App\Models\ProductColor;
 use App\Models\Category;
-use App\Models\AttributeValue;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class ProductSeeder extends Seeder
 {
     public function run(): void
     {
+        // Sample product data
         $products = [
             [
                 'title' => 'Classic Cotton T-Shirt',
@@ -23,13 +27,14 @@ class ProductSeeder extends Seeder
                 'sku' => 'TSH001',
                 'stock_qty' => 100,
                 'pieces_per_package' => 1,
-                'category_slug' => 'men-t-shirts',
-                'size' => 'medium',
-                'colors' => ['white', 'black', 'blue'],
-                'images' => [
-                    ['path' => 'products/tshirt-1.jpg', 'alt_text' => 'Classic Cotton T-Shirt - Front'],
-                    ['path' => 'products/tshirt-2.jpg', 'alt_text' => 'Classic Cotton T-Shirt - Back'],
-                ]
+                'category_slug' => 'clothing',
+                'sizes' => ['S', 'M', 'L', 'XL'],
+                'colors' => [
+                    ['name' => 'White', 'hex' => '#FFFFFF'],
+                    ['name' => 'Black', 'hex' => '#000000'],
+                    ['name' => 'Blue', 'hex' => '#0000FF'],
+                ],
+                'image_count' => 4,
             ],
             [
                 'title' => 'Slim Fit Denim Jeans',
@@ -39,12 +44,13 @@ class ProductSeeder extends Seeder
                 'sku' => 'JNS001',
                 'stock_qty' => 50,
                 'pieces_per_package' => 1,
-                'category_slug' => 'men-pants',
-                'size' => 'large',
-                'colors' => ['blue', 'black'],
-                'images' => [
-                    ['path' => 'products/jeans-1.jpg', 'alt_text' => 'Slim Fit Denim Jeans'],
-                ]
+                'category_slug' => 'clothing',
+                'sizes' => ['M', 'L', 'XL', 'XXL'],
+                'colors' => [
+                    ['name' => 'Blue', 'hex' => '#1E3A8A'],
+                    ['name' => 'Black', 'hex' => '#000000'],
+                ],
+                'image_count' => 3,
             ],
             [
                 'title' => 'Leather Wallet',
@@ -54,12 +60,13 @@ class ProductSeeder extends Seeder
                 'sku' => 'WL001',
                 'stock_qty' => 75,
                 'pieces_per_package' => 1,
-                'category_slug' => 'wallets',
-                'size' => 'small',
-                'colors' => ['black', 'brown'],
-                'images' => [
-                    ['path' => 'products/wallet-1.jpg', 'alt_text' => 'Leather Wallet'],
-                ]
+                'category_slug' => 'accessories',
+                'sizes' => ['One Size'],
+                'colors' => [
+                    ['name' => 'Black', 'hex' => '#000000'],
+                    ['name' => 'Brown', 'hex' => '#8B4513'],
+                ],
+                'image_count' => 3,
             ],
             [
                 'title' => 'Summer Floral Dress',
@@ -70,13 +77,13 @@ class ProductSeeder extends Seeder
                 'sku' => 'DRES001',
                 'stock_qty' => 30,
                 'pieces_per_package' => 1,
-                'category_slug' => 'women-dresses',
-                'size' => 'medium',
-                'colors' => ['red', 'yellow'],
-                'images' => [
-                    ['path' => 'products/dress-1.jpg', 'alt_text' => 'Summer Floral Dress'],
-                    ['path' => 'products/dress-2.jpg', 'alt_text' => 'Summer Floral Dress - Back'],
-                ]
+                'category_slug' => 'clothing',
+                'sizes' => ['XS', 'S', 'M', 'L'],
+                'colors' => [
+                    ['name' => 'Red', 'hex' => '#FF0000'],
+                    ['name' => 'Yellow', 'hex' => '#FFFF00'],
+                ],
+                'image_count' => 4,
             ],
             [
                 'title' => 'Cotton Backpack',
@@ -86,12 +93,14 @@ class ProductSeeder extends Seeder
                 'sku' => 'BKP001',
                 'stock_qty' => 60,
                 'pieces_per_package' => 1,
-                'category_slug' => 'backpacks',
-                'size' => 'large',
-                'colors' => ['black', 'green', 'blue'],
-                'images' => [
-                    ['path' => 'products/backpack-1.jpg', 'alt_text' => 'Cotton Backpack'],
-                ]
+                'category_slug' => 'accessories',
+                'sizes' => ['One Size'],
+                'colors' => [
+                    ['name' => 'Black', 'hex' => '#000000'],
+                    ['name' => 'Green', 'hex' => '#00FF00'],
+                    ['name' => 'Blue', 'hex' => '#0000FF'],
+                ],
+                'image_count' => 3,
             ],
             [
                 'title' => 'Silver Necklace Set',
@@ -101,12 +110,12 @@ class ProductSeeder extends Seeder
                 'sku' => 'JWL001',
                 'stock_qty' => 20,
                 'pieces_per_package' => 2,
-                'category_slug' => 'necklaces',
-                'size' => 'medium',
-                'colors' => ['white'],
-                'images' => [
-                    ['path' => 'products/necklace-1.jpg', 'alt_text' => 'Silver Necklace Set'],
-                ]
+                'category_slug' => 'jewelry',
+                'sizes' => ['One Size'],
+                'colors' => [
+                    ['name' => 'Silver', 'hex' => '#C0C0C0'],
+                ],
+                'image_count' => 3,
             ],
             [
                 'title' => 'Kids Cotton T-Shirt',
@@ -116,12 +125,14 @@ class ProductSeeder extends Seeder
                 'sku' => 'KIDS001',
                 'stock_qty' => 80,
                 'pieces_per_package' => 3,
-                'category_slug' => 'boys',
-                'size' => 'small',
-                'colors' => ['blue', 'green', 'yellow'],
-                'images' => [
-                    ['path' => 'products/kids-tshirt-1.jpg', 'alt_text' => 'Kids Cotton T-Shirt'],
-                ]
+                'category_slug' => 'clothing',
+                'sizes' => ['XS', 'S', 'M'],
+                'colors' => [
+                    ['name' => 'Blue', 'hex' => '#0000FF'],
+                    ['name' => 'Green', 'hex' => '#00FF00'],
+                    ['name' => 'Yellow', 'hex' => '#FFFF00'],
+                ],
+                'image_count' => 3,
             ],
             [
                 'title' => 'Luxury Bedding Set',
@@ -131,18 +142,71 @@ class ProductSeeder extends Seeder
                 'sku' => 'BED001',
                 'stock_qty' => 25,
                 'pieces_per_package' => 4,
-                'category_slug' => 'bedding',
-                'size' => 'large',
-                'colors' => ['white', 'purple'],
-                'images' => [
-                    ['path' => 'products/bedding-1.jpg', 'alt_text' => 'Luxury Bedding Set'],
-                ]
-            ]
+                'category_slug' => 'home',
+                'sizes' => ['Queen', 'King'],
+                'colors' => [
+                    ['name' => 'White', 'hex' => '#FFFFFF'],
+                    ['name' => 'Purple', 'hex' => '#800080'],
+                ],
+                'image_count' => 4,
+            ],
+            [
+                'title' => 'Wireless Headphones',
+                'slug' => 'wireless-headphones',
+                'description' => 'Premium noise-cancelling wireless headphones with superior sound quality.',
+                'price' => 249.99,
+                'sale_price' => 199.99,
+                'sku' => 'HP001',
+                'stock_qty' => 40,
+                'pieces_per_package' => 1,
+                'category_slug' => 'electronics',
+                'sizes' => ['One Size'],
+                'colors' => [
+                    ['name' => 'Black', 'hex' => '#000000'],
+                    ['name' => 'White', 'hex' => '#FFFFFF'],
+                ],
+                'image_count' => 3,
+            ],
+            [
+                'title' => 'Yoga Mat',
+                'slug' => 'yoga-mat',
+                'description' => 'Non-slip exercise yoga mat with carrying strap, perfect for home or studio use.',
+                'price' => 34.99,
+                'sku' => 'YOG001',
+                'stock_qty' => 90,
+                'pieces_per_package' => 1,
+                'category_slug' => 'sports',
+                'sizes' => ['Standard'],
+                'colors' => [
+                    ['name' => 'Purple', 'hex' => '#800080'],
+                    ['name' => 'Blue', 'hex' => '#0000FF'],
+                    ['name' => 'Green', 'hex' => '#00FF00'],
+                ],
+                'image_count' => 3,
+            ],
+            [
+                'title' => 'Ceramic Coffee Mug Set',
+                'slug' => 'ceramic-coffee-mug-set',
+                'description' => 'Set of 4 handcrafted ceramic coffee mugs, dishwasher and microwave safe.',
+                'price' => 44.99,
+                'sku' => 'MUG001',
+                'stock_qty' => 55,
+                'pieces_per_package' => 4,
+                'category_slug' => 'home',
+                'sizes' => ['Standard'],
+                'colors' => [
+                    ['name' => 'White', 'hex' => '#FFFFFF'],
+                    ['name' => 'Blue', 'hex' => '#4169E1'],
+                ],
+                'image_count' => 3,
+            ],
         ];
 
-        foreach ($products as $productData) {
-            $category = Category::where('slug', $productData['category_slug'])->first();
-            
+        // Get sample images
+        $sampleImages = glob(database_path('seeders/assets/product_*.jpg'));
+        
+        foreach ($products as $index => $productData) {
+            // Create product
             $product = Product::create([
                 'title' => $productData['title'],
                 'slug' => $productData['slug'],
@@ -152,40 +216,74 @@ class ProductSeeder extends Seeder
                 'sku' => $productData['sku'],
                 'stock_qty' => $productData['stock_qty'],
                 'track_inventory' => true,
-                'sort_order' => 0,
+                'sort_order' => $index + 1,
                 'is_active' => true,
                 'meta_title' => $productData['title'],
-                'meta_description' => $productData['description'],
+                'meta_description' => Str::limit($productData['description'], 160),
                 'pieces_per_package' => $productData['pieces_per_package'],
             ]);
 
+            // Attach to category if exists
+            $category = Category::where('slug', $productData['category_slug'])->first();
             if ($category) {
                 $product->categories()->attach($category->id);
             }
 
-            // Attach size attribute
-            $sizeValue = AttributeValue::where('slug', $productData['size'])->first();
-            if ($sizeValue) {
-                $product->attributeValues()->attach($sizeValue->id);
-            }
-
-            // Attach color attributes
-            foreach ($productData['colors'] as $colorSlug) {
-                $colorValue = AttributeValue::where('slug', $colorSlug)->first();
-                if ($colorValue) {
-                    $product->attributeValues()->attach($colorValue->id);
-                }
-            }
-
-            // Add images
-            foreach ($productData['images'] as $index => $imageData) {
-                ProductImage::create([
+            // Create sizes
+            foreach ($productData['sizes'] as $sizeIndex => $sizeValue) {
+                ProductSize::create([
                     'product_id' => $product->id,
-                    'path' => $imageData['path'],
-                    'alt_text' => $imageData['alt_text'],
-                    'sort_order' => $index,
+                    'value' => $sizeValue,
+                    'sort_order' => $sizeIndex,
                 ]);
             }
+
+            // Create colors
+            foreach ($productData['colors'] as $colorIndex => $colorData) {
+                ProductColor::create([
+                    'product_id' => $product->id,
+                    'name' => $colorData['name'],
+                    'hex' => $colorData['hex'],
+                    'sort_order' => $colorIndex,
+                ]);
+            }
+
+            // Create product images with file copying
+            $this->createProductImages($product, $productData['image_count'], $sampleImages);
+
+            $this->command->info("✓ Created product: {$product->title} with {$productData['image_count']} images");
+        }
+
+        $this->command->info('✅ Products seeded successfully!');
+    }
+
+    private function createProductImages(Product $product, int $imageCount, array $sampleImages): void
+    {
+        // Create product directory in storage
+        $productDir = "products/{$product->id}/gallery";
+        Storage::disk('public')->makeDirectory($productDir);
+
+        for ($i = 0; $i < $imageCount; $i++) {
+            // Select a random sample image
+            $sourceImage = $sampleImages[array_rand($sampleImages)];
+            $sourceFilename = basename($sourceImage);
+            
+            // Generate unique filename
+            $uniqueFilename = uniqid() . '_' . $sourceFilename;
+            $destinationPath = $productDir . '/' . $uniqueFilename;
+            
+            // Copy file to storage
+            $sourceContent = file_get_contents($sourceImage);
+            Storage::disk('public')->put($destinationPath, $sourceContent);
+            
+            // Create database record
+            ProductImage::create([
+                'product_id' => $product->id,
+                'path' => $destinationPath,
+                'alt_text' => "{$product->title} - Image " . ($i + 1),
+                'sort_order' => $i,
+                'is_featured' => $i === 0, // First image is featured
+            ]);
         }
     }
 }

@@ -15,7 +15,6 @@ class OrderItem extends Model
         'product_sku',
         'quantity',
         'unit_price',
-        'sale_price',
         'total_price',
         'size',
         'chosen_color',
@@ -24,7 +23,6 @@ class OrderItem extends Model
 
     protected $casts = [
         'unit_price' => 'decimal:2',
-        'sale_price' => 'decimal:2',
         'total_price' => 'decimal:2',
         'chosen_color' => 'array',
     ];
@@ -35,10 +33,7 @@ class OrderItem extends Model
 
         static::creating(function ($item) {
             if (empty($item->total_price)) {
-                $price = $item->sale_price && $item->sale_price < $item->unit_price 
-                    ? $item->sale_price 
-                    : $item->unit_price;
-                $item->total_price = $price * $item->quantity;
+                $item->total_price = $item->unit_price * $item->quantity;
             }
         });
     }
@@ -55,9 +50,7 @@ class OrderItem extends Model
 
     public function getEffectivePriceAttribute()
     {
-        return $this->sale_price && $this->sale_price < $this->unit_price 
-            ? $this->sale_price 
-            : $this->unit_price;
+        return $this->unit_price;
     }
 
     public function getFormattedUnitPriceAttribute()
@@ -67,7 +60,7 @@ class OrderItem extends Model
 
     public function getFormattedSalePriceAttribute()
     {
-        return $this->sale_price ? number_format($this->sale_price, 2) : null;
+        return null;
     }
 
     public function getFormattedTotalPriceAttribute()
@@ -85,17 +78,12 @@ class OrderItem extends Model
 
     public function getIsOnSaleAttribute()
     {
-        return $this->sale_price && $this->sale_price < $this->unit_price;
+        return false;
     }
 
     public function getDiscountPercentageAttribute()
     {
-        if (!$this->is_on_sale) {
-            return 0;
-        }
-        
-        $discount = (($this->unit_price - $this->sale_price) / $this->unit_price) * 100;
-        return round($discount);
+        return 0;
     }
 
     public function recalculateTotal()
@@ -112,7 +100,6 @@ class OrderItem extends Model
             'product_title' => $this->product_title,
             'product_sku' => $this->product_sku,
             'unit_price' => $this->unit_price,
-            'sale_price' => $this->sale_price,
             'size' => $this->size,
             'chosen_color' => $this->chosen_color,
             'pieces_per_package' => $this->pieces_per_package,
@@ -124,7 +111,6 @@ class OrderItem extends Model
         return array_merge(parent::toArray(), [
             'effective_price' => $this->effective_price,
             'formatted_unit_price' => $this->formatted_unit_price,
-            'formatted_sale_price' => $this->formatted_sale_price,
             'formatted_total_price' => $this->formatted_total_price,
             'chosen_color_label' => $this->chosen_color_label,
             'is_on_sale' => $this->is_on_sale,

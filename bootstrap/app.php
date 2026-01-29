@@ -21,14 +21,17 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\RedirectIfNotAdmin::class,
         ]);
 
         $middleware->alias([
             'web' => \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            'redirect.if.not.admin' => \App\Http\Middleware\RedirectIfNotAdmin::class,
         ]);
     })
     ->withProviders([
         AuthServiceProvider::class,
+        \App\Providers\Filament\AdminPanelProvider::class,
     ])
     ->withExceptions(function (Exceptions $exceptions): void {
         //
