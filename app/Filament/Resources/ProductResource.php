@@ -13,6 +13,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Columns\ImageColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
@@ -208,12 +209,11 @@ return $form
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['featuredImage']))
             ->columns([
-                Tables\Columns\ImageColumn::make('featured_image_url')
+                ImageColumn::make('featured_image_url')
                     ->label('Image')
                     ->size(60)
                     ->circular()
-                    ->defaultImageUrl(url('/placeholder-product.png'))
-                    ->getStateUsing(fn (Product $record): ?string => $record->featured_image_url),
+                    ->defaultImageUrl(url('https://ui-avatars.com/api/?name=Product&color=7F9CF5&background=EBF4FF')),
                 Tables\Columns\TextColumn::make('title')
                     ->searchable()
                     ->limit(50),

@@ -26,19 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Old admin routes removed - now using Filament
-
-// Banner preview route for Filament
-Route::get('/banner/preview/{banner}', function (\App\Models\Banner $banner) {
-    return view('banner-preview', compact('banner'));
-})->name('banner.preview');
-
-require __DIR__.'/auth.php';
-
-// Apply admin authentication middleware
-Route::middleware(['web', 'redirect.if.not.admin'])->group(function () {
-    // Admin routes will be handled by Filament
-});
+// Custom auth routes removed - using Filament authentication instead
 
 // Session test route
 Route::get('/_session-test', function () {

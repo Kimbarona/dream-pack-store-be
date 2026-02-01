@@ -83,6 +83,7 @@ trait HasModuleAccess
         $moduleMap = [
             'productresource' => 'products',
             'categoryresource' => 'categories',
+            'subcategoryresource' => 'categories',
             'orderresource' => 'orders',
             'bannerresource' => 'banners',
             'adminresource' => 'admins',

@@ -28,6 +28,7 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Resources\ProductResource::class,
                 \App\Filament\Resources\OrderResource::class,
                 \App\Filament\Resources\CategoryResource::class,
+                \App\Filament\Resources\SubCategoryResource::class,
                 \App\Filament\Resources\BannerResource::class,
             ])
             ->authGuard('admin')

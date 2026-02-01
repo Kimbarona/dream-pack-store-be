@@ -10,7 +10,7 @@ class ProductListResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
+            'id' => $this->id ?? $this->getKey(),
             'title' => $this->title,
             'slug' => $this->slug,
             'price' => (float) $this->price,
@@ -19,7 +19,9 @@ class ProductListResource extends JsonResource
             'is_active' => $this->is_active,
             
             // Lightweight fields
-            'featured_image' => $this->featured_image_url,
+            'featured_image' => $this->whenLoaded('images', fn() => 
+                $this->images->first()?->url : null
+            ),
             'categories' => $this->whenLoaded('categories', fn() => 
                 $this->categories->pluck('name')->toArray()
             ),

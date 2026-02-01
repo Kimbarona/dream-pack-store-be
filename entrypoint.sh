@@ -22,8 +22,13 @@ if [ "$SEED_ADMIN" = "true" ]; then
     php artisan migrate:fresh --force
     echo "Seeding database..."
     php artisan db:seed --force
+elif [ "$SEED_ADMIN_ONLY" = "true" ]; then
+    echo "Clearing database for admin-only seeding..."
+    php artisan migrate:fresh --force
+    echo "Seeding admin accounts only..."
+    php artisan db:seed --class=AdminOnlySeeder --force
 else
-    echo "Skipping admin seeding (SEED_ADMIN not set to 'true')"
+    echo "Skipping admin seeding (SEED_ADMIN or SEED_ADMIN_ONLY not set to 'true')"
 fi
 
 echo "Starting Laravel artisan serve on port ${PORT:-10000}..."

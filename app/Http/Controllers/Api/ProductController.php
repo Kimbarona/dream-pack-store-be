@@ -4,13 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ProductFilterRequest;
-use App\Http\Resources\Api\ProductResource;
 use App\Http\Resources\Api\ProductListResource;
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Database\Eloquent\Builder;
 
 class ProductController extends Controller
@@ -20,7 +18,7 @@ class ProductController extends Controller
         // Public API - no authentication required
     }
 
-    public function index(ProductFilterRequest $request): JsonResource
+    public function index(ProductFilterRequest $request)
     {
         // Lightweight query for list views
         $query = Product::with(['categories', 'images' => function($q) {
@@ -53,8 +51,8 @@ class ProductController extends Controller
             $searchTerm = $request->q;
             $query->where(function (Builder $q) use ($searchTerm) {
                 $q->where('title', 'like', "%{$searchTerm}%")
-                  ->orWhere('description', 'like', "%{$searchTerm}%")
-                  ->orWhere('sku', 'like', "%{$searchTerm}%");
+                      ->orWhere('description', 'like', "%{$searchTerm}%")
+                      ->orWhere('sku', 'like', "%{$searchTerm}%");
             });
         }
 
@@ -62,7 +60,7 @@ class ProductController extends Controller
         if ($request->boolean('in_stock')) {
             $query->where(function (Builder $q) {
                 $q->where('stock_qty', '>', 0)
-                  ->orWhere('track_inventory', false);
+                      ->orWhere('track_inventory', false);
             });
         }
 
@@ -103,8 +101,7 @@ class ProductController extends Controller
         }
 
         $products = $query->paginate(
-            $request->input('per_page', 12),
-            ['title', 'description']
+            $request->input('per_page', 12)
         );
 
         return ProductListResource::collection($products);

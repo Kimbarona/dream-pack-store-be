@@ -2,7 +2,8 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\CategoryResource\Pages;
+use App\Filament\Resources\SubCategoryResource\Pages;
+use App\Models\SubCategory;
 use App\Models\Category;
 use App\Filament\Traits\HasModuleAccess;
 use Filament\Forms;
@@ -12,26 +13,37 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Facades\Auth;
 
-class CategoryResource extends Resource
+class SubCategoryResource extends Resource
 {
     use HasModuleAccess;
 
-    protected static ?string $model = Category::class;
+    protected static ?string $model = SubCategory::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 
     protected static ?string $navigationGroup = 'Store Management';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
+                Forms\Components\Select::make('category_id')
+                    ->label('Parent Category')
+                    ->options(function () {
+                        return Category::whereNull('parent_id')
+                            ->where('is_active', true)
+                            ->ordered()
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->searchable()
+                    ->required()
+                    ->placeholder('Select a category'),
                 Forms\Components\TextInput::make('name')
-                    ->label('Category')
+                    ->label('Sub-Category Name')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('slug')
@@ -52,22 +64,29 @@ class CategoryResource extends Resource
             ]);
     }
 
-    public static function table(Table $table): Table
+public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['parent']))
-->columns([
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['category']))
+            ->columns([
+                Tables\Columns\TextColumn::make('category.name')
+                    ->label('Parent Category')
+                    ->sortable()
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Category')
+                    ->label('Sub-Category')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('slug')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('sort_order')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('meta_title')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
@@ -78,15 +97,8 @@ class CategoryResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-])
+            ])
             ->defaultPaginationPageOption(25)
-            ->filters([
-                //
-])
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Active Status')
@@ -106,20 +118,12 @@ class CategoryResource extends Resource
             ]);
     }
 
-    public static function getRelations(): array
+public static function getPages(): array
     {
         return [
-            //
-        ];
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListCategories::route('/'),
-            'create' => Pages\CreateCategory::route('/create'),
-            'view' => Pages\ViewCategory::route('/{record}'),
-            'edit' => Pages\EditCategory::route('/{record}/edit'),
+            'index' => Pages\ListSubCategories::route('/'),
+            'create' => Pages\CreateSubCategory::route('/create'),
+            'edit' => Pages\EditSubCategory::route('/{record}/edit'),
         ];
     }
 
