@@ -15,10 +15,11 @@ class Dashboard extends BaseDashboard
     public function getWidgets(): array
     {
         return [
-            // All widgets temporarily disabled
-            // \App\Filament\Widgets\DateFilterWidget::class,
-            // \App\Filament\Widgets\SimpleStatsWidget::class,
-            // \App\Filament\Widgets\RevenueChart::class,
+            \App\Filament\Widgets\DateFilterWidget::class,
+            \App\Filament\Widgets\SimpleStatsWidget::class,
+            \App\Filament\Widgets\RevenueChart::class,
+            \App\Filament\Widgets\TopProductsWidget::class,
+            \App\Filament\Widgets\LowStockAlertWidget::class,
             // \App\Filament\Widgets\RecentOrdersSimpleWidget::class,
         ];
     }

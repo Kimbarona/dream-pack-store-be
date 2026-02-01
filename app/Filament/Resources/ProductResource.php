@@ -89,23 +89,16 @@ return $form
                             ->searchable()
                             ->placeholder('Select a category')
                             ->reactive()
-                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                $set('sub_category_display', null);
-                                $categoryId = $state;
-                                if ($categoryId) {
-                                    $subCategories = Category::where('parent_id', $categoryId)
-                                        ->active()
-                                        ->ordered()
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-                                    
-                                    if (!empty($subCategories)) {
-                                        $set('sub_category_display', implode(', ', array_values($subCategories)));
-                                    } else {
-                                        $set('sub_category_display', 'No sub-categories');
-                                    }
-                                }
-                            }),
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                        // Auto-populate HEX when color name changes
+                                        $colorName = $state;
+                                        if ($colorName && !empty(trim($colorName))) {
+                                            $hex = self::generateHexFromColorName($colorName);
+                                            if ($hex) {
+                                                $set('hex', $hex);
+                                            }
+                                        }
+                                    }),
                         Forms\Components\TextInput::make('sub_category_display')
                             ->label('Sub-Category')
                             ->readOnly()
@@ -171,12 +164,24 @@ return $form
                                 Forms\Components\TextInput::make('name')
                                     ->label('Color Name')
                                     ->required()
-                                    ->maxLength(255),
+                                    ->maxLength(255)
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                        // Auto-populate HEX when color name changes
+                                        $colorName = $state;
+                                        if ($colorName && !empty(trim($colorName))) {
+                                            $hex = self::generateHexFromColorName($colorName);
+                                            if ($hex) {
+                                                $set('hex', $hex);
+                                            }
+                                        }
+                                    }),
                                 Forms\Components\TextInput::make('hex')
                                     ->label('Hex Color')
                                     ->required()
-                                    ->helperText('Example: #FF0000')
-                                    ->maxLength(7),
+                                    ->helperText('Auto-populated from color name')
+                                    ->maxLength(7)
+                                    ->disabled(fn (callable $get): bool => !empty($get('hex'))),
                                 Forms\Components\FileUpload::make('image_path')
                                     ->label('Color Image (Optional)')
                                     ->image()
@@ -307,5 +312,98 @@ return $form
     public static function canViewAny(): bool
     {
         return static::canAccessResource('products');
+    }
+
+    /**
+     * Generate HEX color from common color names
+     */
+    private static function generateHexFromColorName(string $colorName): ?string
+    {
+        $colorMap = [
+            // Basic colors
+            'red' => '#FF0000',
+            'green' => '#008000',
+            'blue' => '#0000FF',
+            'yellow' => '#FFFF00',
+            'orange' => '#FFA500',
+            'purple' => '#800080',
+            'pink' => '#FFC0CB',
+            'brown' => '#A52A2A',
+            'black' => '#000000',
+            'white' => '#FFFFFF',
+            'gray' => '#808080',
+            'grey' => '#808080',
+            
+            // Common variations
+            'light blue' => '#ADD8E6',
+            'dark blue' => '#00008B',
+            'sky blue' => '#87CEEB',
+            'navy' => '#000080',
+            'light green' => '#90EE90',
+            'dark green' => '#006400',
+            'lime' => '#32CD32',
+            'light red' => '#FF6B6B',
+            'dark red' => '#8B0000',
+            'maroon' => '#800000',
+            'coral' => '#FF7F50',
+            'salmon' => '#FA8072',
+            'gold' => '#FFD700',
+            'silver' => '#C0C0C0',
+            'beige' => '#F5F5DC',
+            'cream' => '#FFFDD0',
+            'ivory' => '#FFFFF0',
+            'khaki' => '#F0E68C',
+            'tan' => '#D2B48C',
+            
+            // Popular web colors
+            'tomato' => '#FF6347',
+            'turquoise' => '#40E0D0',
+            'cyan' => '#00FFFF',
+            'teal' => '#008080',
+            'indigo' => '#4B0082',
+            'violet' => '#EE82EE',
+            'magenta' => '#FF00FF',
+            'fuchsia' => '#FF00FF',
+            'lavender' => '#E6E6FA',
+            'plum' => '#DDA0DD',
+            'orchid' => '#DA70D6',
+            
+            // Material Design colors
+            'amber' => '#FFC107',
+            'amber light' => '#FFECB3',
+            'amber dark' => '#FFA000',
+            'blue grey' => '#607D8B',
+            'blue grey light' => '#90A4AE',
+            'blue grey dark' => '#37474F',
+            'deep orange' => '#FF5722',
+            'deep purple' => '#673AB7',
+            'light green' => '#8BC34A',
+            'light green dark' => '#689F38',
+            'lime' => '#CDDC39',
+            'lime dark' => '#827717',
+            'orange' => '#FF9800',
+            'orange dark' => '#F57C00',
+            
+            // Additional common colors
+            'chocolate' => '#D2691E',
+            'sienna' => '#A0522D',
+            'crimson' => '#DC143C',
+            'firebrick' => '#B22222',
+            'slate' => '#708090',
+            'slate gray' => '#2F4F4F',
+            'steel' => '#4682B4',
+            'charcoal' => '#36454F',
+            'olive' => '#808000',
+            'wheat' => '#F5DEB3',
+            'peach' => '#FFDAB9',
+            'mint' => '#98FF98',
+            'aqua' => '#7FFFD4',
+        ];
+        
+        // Convert to lowercase and trim for matching
+        $normalizedName = strtolower(trim($colorName));
+        
+        // Return exact match or null if not found
+        return $colorMap[$normalizedName] ?? null;
     }
 }
