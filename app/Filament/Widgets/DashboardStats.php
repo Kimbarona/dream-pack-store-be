@@ -70,9 +70,9 @@ class DashboardStats extends BaseWidget
                 ->descriptionIcon('heroicon-m-check-circle')
                 ->color('success'),
                 
-            Stat::make('Total Revenue', '$' . number_format($totalRevenue, 2))
+            Stat::make('Total Revenue', '₪' . number_format($totalRevenue, 2))
                 ->description('In selected date range')
-                ->descriptionIcon('heroicon-m-currency-dollar')
+                ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
         ];
     }

@@ -19,12 +19,12 @@ class ProductListResource extends JsonResource
             'is_active' => $this->is_active,
             
             // Lightweight fields
-            'featured_image' => $this->whenLoaded('images', fn() => 
-                $this->images->first()?->url : null
-            ),
-            'categories' => $this->whenLoaded('categories', fn() => 
-                $this->categories->pluck('name')->toArray()
-            ),
+            'featured_image' => $this->whenLoaded('images', function() {
+                return optional($this->images->first())->url;
+            }),
+            'categories' => $this->whenLoaded('categories', function() {
+                return $this->categories->pluck('name')->toArray();
+            }),
             
             // Computed fields
             'in_stock' => $this->stock_qty > 0 || !$this->track_inventory,

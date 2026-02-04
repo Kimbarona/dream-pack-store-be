@@ -19,12 +19,13 @@ class Product extends Model
         'sale_price',
         'sku',
         'stock_qty',
+        'minimum_stock',
         'track_inventory',
         'sort_order',
         'is_active',
         'meta_title',
         'meta_description',
-        'pcs_per_pack',
+        'pieces_per_package',
     ];
 
     protected $casts = [
@@ -77,6 +78,28 @@ class Product extends Model
     public function scopeInStock($query)
     {
         return $query->where('stock_qty', '>', 0);
+    }
+
+    public function scopeLowStock($query)
+    {
+        return $query->where('track_inventory', true)
+                    ->whereColumn('stock_qty', '<=', 'minimum_stock');
+    }
+
+    public function scopeOutOfStock($query)
+    {
+        return $query->where('track_inventory', true)
+                    ->where('stock_qty', '<=', 0);
+    }
+
+    public function isLowStock(): bool
+    {
+        return $this->track_inventory && $this->stock_qty <= $this->minimum_stock;
+    }
+
+    public function isOutOfStock(): bool
+    {
+        return $this->track_inventory && $this->stock_qty <= 0;
     }
 
     public function getSizeAttribute()

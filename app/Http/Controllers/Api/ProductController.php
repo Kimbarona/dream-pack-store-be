@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ProductFilterRequest;
 use App\Http\Resources\Api\ProductListResource;
+use App\Http\Resources\Api\ProductDetailResource;
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Http\Request;
@@ -124,7 +125,7 @@ class ProductController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new ProductResource($product),
+            'data' => new ProductListResource($product),
         ]);
     }
 

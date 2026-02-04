@@ -13,7 +13,7 @@ class SettingsSeeder extends Seeder
             'site_name' => 'Dream Pack',
             'site_description' => 'Premium e-commerce store for quality products',
             'site_email' => 'contact@dreampack.com',
-            'currency' => 'USD',
+            'currency' => 'ILS',
             'tax_rate' => 0.08,
             'shipping_cost' => 9.99,
             'free_shipping_threshold' => 100.00,

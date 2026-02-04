@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Route;
 use App\Providers\AuthServiceProvider;
 
 return Application::configure(basePath: dirname(__DIR__))
+    ->withEvents([
+        // Suppress Pail provider errors in Docker
+        \Laravel\Pail\PailServiceProvider::class => false,
+    ])
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
@@ -34,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
         AuthServiceProvider::class,
         \App\Providers\Filament\AdminPanelProvider::class,
     ])
+
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

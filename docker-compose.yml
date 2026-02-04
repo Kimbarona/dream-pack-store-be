@@ -10,14 +10,21 @@ services:
       APP_ENV: local
       APP_DEBUG: true
       APP_KEY: base64:UvubEOyYzf0wsfAEufm4b0cBfErvSMVkJ2HsEoZhLgs=
-      APP_URL: http://localhost:10000
+      APP_URL: http://localhost:8000
       DB_CONNECTION: pgsql
-      DB_HOST: db
-      DB_PORT: 5432
+      DB_HOST: localhost
+      DB_PORT: 5433
       DB_DATABASE: laravel
       DB_USERNAME: laravel
       DB_PASSWORD: secret
       SEED_ADMIN: true
+      # Bypass Pail provider errors
+      REGISTER_PHP_SERVICES: false
+    volumes:
+      # Mount storage and cache directories
+      - ./:/var/www/html
+      - ./storage:/var/www/html/storage
+      - ./bootstrap/cache:/var/www/html/bootstrap/cache
     depends_on:
       - db
 

@@ -25,6 +25,7 @@ export default defineConfig({
                 },
             },
         },
+        minify: true,
     },
     define: {
         __VUE_OPTIONS_API__: false,

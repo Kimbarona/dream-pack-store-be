@@ -52,7 +52,7 @@
         <div class="flex items-center">
             <div class="flex-1">
                 <h3 class="text-sm font-medium text-gray-500">Total Revenue</h3>
-                <p class="text-2xl font-bold text-gray-900">${{ number_format($data['totalRevenue'], 2) }}</p>
+                <p class="text-2xl font-bold text-gray-900">₪{{ number_format($data['totalRevenue'], 2) }}</p>
                 <p class="text-sm text-gray-600">In selected date range</p>
             </div>
             <div class="ml-4">

@@ -414,7 +414,7 @@ class TraditionalPaymentController extends Controller
                 'limits' => [
                     'min_amount' => 1.00,
                     'max_amount' => 10000.00,
-                    'currency' => 'USD',
+                    'currency' => 'ILS',
                     'expiry_minutes' => 15,
                 ],
             ]

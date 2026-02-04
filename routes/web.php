@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -43,3 +45,4 @@ Route::get('/_session-test', function () {
         'csrf_token' => csrf_token(),
     ]);
 })->name('session.test');
+

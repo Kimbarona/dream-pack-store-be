@@ -23,7 +23,6 @@ class ImagesRelationManager extends RelationManager
                 Forms\Components\FileUpload::make('path')
                     ->label('Image')
                     ->image()
-                    ->imageEditor()
                     ->directory(fn () => 'banners/' . $this->ownerRecord->id)
                     ->visibility('public')
                     ->disk('public')
@@ -105,30 +104,33 @@ class ImagesRelationManager extends RelationManager
                             ->label('Gallery Images')
                             ->multiple()
                             ->image()
-                            ->imageEditor()
                             ->directory(fn () => 'banners/' . $this->ownerRecord->id . '/gallery')
                             ->visibility('public')
                             ->disk('public')
                             ->required()
                             ->columnSpanFull()
-                            ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/jpg', 'image/webp'])
                             ->maxFiles(20)
                             ->helperText('Upload multiple images. Each image will be created as a banner image entry.'),
                     ])
                     ->action(function (array $data) {
-                        $sortOrder = BannerImage::max('sort_order') ?? 0;
-                        
-                        foreach ($data['gallery'] as $index => $image) {
-                            BannerImage::create([
-                                'banner_id' => $this->ownerRecord->id,
-                                'path' => $image,
-                                'disk' => 'public',
-                                'sort_order' => $sortOrder + $index,
-                                'is_mobile' => false,
-                            ]);
+                        try {
+                            $sortOrder = BannerImage::max('sort_order') ?? 0;
+                            
+                            foreach ($data['gallery'] as $index => $image) {
+                                BannerImage::create([
+                                    'banner_id' => $this->ownerRecord->id,
+                                    'path' => $image,
+                                    'disk' => 'public',
+                                    'sort_order' => $sortOrder + $index,
+                                    'is_mobile' => false,
+                                ]);
+                            }
+                            
+                            $this->dispatch('refreshComponent');
+                        } catch (\Exception $e) {
+                            logger('Gallery upload failed: ' . $e->getMessage());
+                            throw $e;
                         }
-                        
-                        $this->dispatch('refreshComponent');
                     }),
             ])
             ->actions([

@@ -208,6 +208,10 @@ class Order extends Model
     public function recalculateTotals()
     {
         $this->subtotal = $this->items()->sum('total_price');
+        
+        // Calculate tax as 18% of (subtotal + shipping)
+        $this->tax_amount = round(($this->subtotal + $this->shipping_amount) * 0.18, 2);
+        
         $this->total = $this->subtotal + $this->tax_amount + $this->shipping_amount;
         $this->save();
         

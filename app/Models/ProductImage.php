@@ -17,6 +17,23 @@ class ProductImage extends Model
         'is_featured',
     ];
 
+    protected $attributes = [
+        'disk' => 'public',
+        'sort_order' => 0,
+        'is_featured' => false,
+    ];
+
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($image) {
+            if (!$image->product_id) {
+                throw new \Exception('Product ID is required for images');
+            }
+        });
+    }
+
     protected $casts = [
         'is_featured' => 'boolean',
         'sort_order' => 'integer',

@@ -3,19 +3,19 @@ set -e
 
 echo "Starting Laravel application..."
 
-echo "==> Ensuring cache directories..."
-mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/framework/cache/data
-chmod -R 775 storage bootstrap/cache || true
+echo "==> Ensuring directories..."
+mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/framework/cache/data storage/app/livewire-tmp storage/app/public bootstrap/cache
 
-echo "==> Running package discovery..."
-php artisan package:discover --ansi || true
+echo "==> Clearing caches..."
+php artisan config:clear
+php artisan cache:clear
 
-
-echo "Running database migrations..."
+echo "==> Running database migrations..."
 php artisan migrate --force
 
 echo "Optimizing Filament..."
-php artisan filament:optimize || true
+php artisan filament:optimize
+php artisan filament:optimize-clear
 
 if [ "$SEED_ADMIN" = "true" ]; then
     echo "Clearing database for fresh seeding..."

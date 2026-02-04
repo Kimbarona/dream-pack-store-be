@@ -47,7 +47,7 @@ return $form
                 Forms\Components\TextInput::make('price')
                     ->required()
                     ->numeric()
-                    ->prefix('$'),
+                    ->prefix('₪'),
                 Forms\Components\TextInput::make('sale_price')
                     ->numeric(),
                 Forms\Components\TextInput::make('sku')
@@ -57,7 +57,14 @@ return $form
                 Forms\Components\TextInput::make('stock_qty')
                     ->required()
                     ->numeric()
-                    ->default(0),
+                    ->default(0)
+                    ->label('Current Stock'),
+                Forms\Components\TextInput::make('minimum_stock')
+                    ->required()
+                    ->numeric()
+                    ->default(5)
+                    ->helperText('Minimum stock level before showing as low stock')
+                    ->label('Minimum Stock Level'),
                 Forms\Components\Toggle::make('track_inventory')
                     ->required(),
                 Forms\Components\TextInput::make('sort_order')
@@ -71,6 +78,7 @@ return $form
                 Forms\Components\Textarea::make('meta_description')
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('pieces_per_package')
+                    ->label('Pieces per Pack')
                     ->required()
                     ->numeric()
                     ->default(1),
@@ -88,17 +96,12 @@ return $form
                             })
                             ->searchable()
                             ->placeholder('Select a category')
-                            ->reactive()
-                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                        // Auto-populate HEX when color name changes
-                                        $colorName = $state;
-                                        if ($colorName && !empty(trim($colorName))) {
-                                            $hex = self::generateHexFromColorName($colorName);
-                                            if ($hex) {
-                                                $set('hex', $hex);
-                                            }
-                                        }
-                                    }),
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                // Clear sub-category display when category changes
+                                $set('sub_category_display', null);
+                            })
+                            ->dehydrated(false),
                         Forms\Components\TextInput::make('sub_category_display')
                             ->label('Sub-Category')
                             ->readOnly()
@@ -130,30 +133,38 @@ return $form
                                     ->visibility('public')
                                     ->disk('public')
                                     ->required()
-                                    ->columnSpanFull(),
+                                    ->columnSpanFull()
+                                    ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'])
+                                    ->maxSize(5120)
+                                    ->getUploadedFileNameForStorageUsing(fn ($file): string => (string) str($file->getClientOriginalName())->prepend('product_')),
                                 Forms\Components\TextInput::make('alt_text')
                                     ->label('Alt Text')
-                                    ->helperText('Describe the image for SEO and accessibility')
+                                    ->helperText('Describe the image for accessibility')
                                     ->maxLength(255),
+                                Forms\Components\Toggle::make('is_featured')
+                                    ->label('Featured Image')
+                                    ->default(false)
+                                    ->helperText('This image will be used as the main product image'),
                                 Forms\Components\TextInput::make('sort_order')
                                     ->label('Sort Order')
                                     ->numeric()
                                     ->default(0),
-                                Forms\Components\Toggle::make('is_featured')
-                                    ->label('Featured Image')
-                                    ->helperText('Check to make this the featured product image'),
                             ])
-                            ->columns(3)
-                            ->collapsed()
+                            ->columns(2)
                             ->collapsible()
-                            ->itemLabel(fn (array $state): ?string => $state['alt_text'] ?? 'New Image')
-                            ->orderable('sort_order')
-                            ->reorderableWithButtons()
+                            ->collapsed()
+                            ->itemLabel(fn (array $state): ?string => 
+                                !empty($state['alt_text']) ? $state['alt_text'] : 
+                                (!empty($state['path']) ? 
+                                    (is_array($state['path']) ? 'Uploaded Image' : pathinfo($state['path'], PATHINFO_FILENAME)) 
+                                    : 'New Image'))
                             ->addable('Add Image')
-                            ->deletable('Remove Image'),
+                            ->deletable('Remove Image')
+                            ->reorderableWithButtons()
+                            ->orderable('sort_order')
+
                     ])
-                    ->collapsible()
-                    ->collapsed(),
+                    ->collapsible(),
 
                 Forms\Components\Section::make('Product Colors')
                     ->description('Define product color variations with optional images.')
@@ -165,8 +176,8 @@ return $form
                                     ->label('Color Name')
                                     ->required()
                                     ->maxLength(255)
-                                    ->reactive()
-                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (string $state, callable $set, callable $get) {
                                         // Auto-populate HEX when color name changes
                                         $colorName = $state;
                                         if ($colorName && !empty(trim($colorName))) {
@@ -179,13 +190,26 @@ return $form
                                 Forms\Components\TextInput::make('hex')
                                     ->label('Hex Color')
                                     ->required()
-                                    ->helperText('Auto-populated from color name')
+                                    ->helperText('Auto-populated from color name, or enter manually')
                                     ->maxLength(7)
-                                    ->disabled(fn (callable $get): bool => !empty($get('hex'))),
+                                    ->placeholder('#000000')
+                                    ->rules([
+                                        'regex:/^#[0-9A-Fa-f]{6}$/' // Must be valid hex color format
+                                    ])
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (string $state, callable $set, callable $get) {
+                                        // Auto-populate HEX when color name changes and hex is empty
+                                        $colorName = $get('name');
+                                        if ($colorName && empty($state)) {
+                                            $hex = self::generateHexFromColorName($colorName);
+                                            if ($hex) {
+                                                $set('hex', $hex);
+                                            }
+                                        }
+                                    }),
                                 Forms\Components\FileUpload::make('image_path')
                                     ->label('Color Image (Optional)')
                                     ->image()
-                                    ->imageEditor()
                                     ->directory('product-colors')
                                     ->visibility('public')
                                     ->disk('public')
@@ -212,12 +236,19 @@ return $form
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['featuredImage']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['featuredImage', 'images']))
             ->columns([
                 ImageColumn::make('featured_image_url')
                     ->label('Image')
                     ->size(60)
                     ->circular()
+                    ->getStateUsing(function (Product $record): ?string {
+                        $featuredImage = $record->featuredImage;
+                        if (!$featuredImage) {
+                            $featuredImage = $record->images()->first();
+                        }
+                        return $featuredImage?->url;
+                    })
                     ->defaultImageUrl(url('https://ui-avatars.com/api/?name=Product&color=7F9CF5&background=EBF4FF')),
                 Tables\Columns\TextColumn::make('title')
                     ->searchable()
@@ -226,7 +257,7 @@ return $form
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('price')
-                    ->money()
+                    ->money('ILS')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('sale_price')
                     ->numeric()
@@ -237,7 +268,40 @@ return $form
                     ->searchable(),
                 Tables\Columns\TextColumn::make('stock_qty')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->label('Stock')
+                    ->formatStateUsing(function (Product $record): string {
+                        if (!$record->track_inventory) {
+                            return 'Not Tracked';
+                        }
+                        
+                        $stock = $record->stock_qty;
+                        $minimum = $record->minimum_stock ?? 5;
+                        
+                        if ($stock <= 0) {
+                            return "⚠️ {$stock} (Out of Stock)";
+                        } elseif ($stock <= $minimum) {
+                            return "🟡 {$stock} (Low)";
+                        }
+                        
+                        return "🟢 {$stock}";
+                    })
+                    ->color(function (Product $record): string {
+                        if (!$record->track_inventory) {
+                            return 'gray';
+                        }
+                        
+                        $stock = $record->stock_qty;
+                        $minimum = $record->minimum_stock ?? 5;
+                        
+                        if ($stock <= 0) {
+                            return 'danger';
+                        } elseif ($stock <= $minimum) {
+                            return 'warning';
+                        }
+                        
+                        return 'success';
+                    }),
                 Tables\Columns\IconColumn::make('track_inventory')
                     ->boolean()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -279,6 +343,28 @@ return $form
                     ->placeholder('All')
                     ->trueLabel('Active')
                     ->falseLabel('Inactive'),
+                Tables\Filters\SelectFilter::make('stock_status')
+                    ->label('Stock Status')
+                    ->options([
+                        'in_stock' => 'In Stock',
+                        'low_stock' => 'Low Stock',
+                        'out_of_stock' => 'Out of Stock',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['value'] === 'in_stock',
+                                fn (Builder $query) => $query->where('track_inventory', true)->where('stock_qty', '>', fn ($query) => $query->select('minimum_stock')->from('products as p')->whereColumn('p.id', 'products.id'))
+                            )
+                            ->when(
+                                $data['value'] === 'low_stock',
+                                fn (Builder $query) => $query->lowStock()
+                            )
+                            ->when(
+                                $data['value'] === 'out_of_stock',
+                                fn (Builder $query) => $query->outOfStock()
+                            );
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

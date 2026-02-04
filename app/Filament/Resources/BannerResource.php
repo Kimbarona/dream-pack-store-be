@@ -67,12 +67,9 @@ public static function form(Form $form): Form
                         FileUpload::make('image')
                             ->label('Banner Image')
                             ->image()
-                            ->imageEditor()
                             ->directory('banners')
                             ->visibility('public')
                             ->disk('public')
-                            ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/jpg', 'image/webp'])
-                            ->maxSize(5120) // 5MB
                             ->columnSpanFull()
                             ->helperText('Upload the main banner image. Recommended size: 1920x1080px')
                             ->afterStateUpdated(function ($state, callable $set, $get) {

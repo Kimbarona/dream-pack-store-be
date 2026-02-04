@@ -38,7 +38,7 @@ class RecentOrdersSimpleWidget extends BaseWidget
                     ->label('Customer')
                     ->default('Guest'),
                 Tables\Columns\TextColumn::make('total')
-                    ->money()
+                    ->money('ILS')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()

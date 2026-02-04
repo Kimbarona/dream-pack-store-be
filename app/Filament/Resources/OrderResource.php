@@ -59,6 +59,10 @@ class OrderResource extends Resource
                             ->relationship('user', 'name')
                             ->searchable()
                             ->required()
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                self::fillCustomerAddress($state, $set, $get);
+                            })
                             ->getSearchResultsUsing(function (string $search) {
                                 return \App\Models\User::where('name', 'like', "%{$search}%")
                                     ->orWhere('email', 'like', "%{$search}%")
@@ -88,6 +92,10 @@ class OrderResource extends Resource
                         Repeater::make('items')
                             ->label('Items')
                             ->relationship()
+                            ->live()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                self::recalculateSubtotal($set, $get);
+                            })
                             ->schema([
                                 Select::make('product_id')
                                     ->label('Product')
@@ -133,12 +141,15 @@ class OrderResource extends Resource
                                         $unitPrice = (float) ($get('unit_price') ?? 0);
                                         $quantity = (int) ($state ?? 1);
                                         $set('total_price', $unitPrice * $quantity);
+                                        
+                                        // Recalculate subtotal
+                                        self::recalculateSubtotal($set, $get);
                                     }),
 
                                 TextInput::make('unit_price')
                                     ->label('Unit Price')
                                     ->numeric()
-                                    ->prefix('$')
+                                    ->prefix('₪')
                                     ->readOnly()
                                     ->required()
                                     ->default(0)
@@ -147,7 +158,7 @@ class OrderResource extends Resource
                                 TextInput::make('total_price')
                                     ->label('Total Price')
                                     ->numeric()
-                                    ->prefix('$')
+                                    ->prefix('₪')
                                     ->disabled()
                                     ->dehydrateStateUsing(fn ($state) => $state ?? 0),
 
@@ -180,23 +191,59 @@ class OrderResource extends Resource
                 Section::make('Financial Information')
                     ->columns(2)
                     ->schema([
+                        TextInput::make('subtotal')
+                            ->label('Subtotal')
+                            ->numeric()
+                            ->prefix('₪')
+                            ->disabled()
+                            ->dehydrateStateUsing(fn ($state) => $state ?? 0),
+
                         TextInput::make('tax_amount')
                             ->label('Tax Amount')
                             ->numeric()
-                            ->prefix('$')
-                            ->default(0),
+                            ->prefix('₪')
+                            ->default(0)
+                            ->disabled()
+                            ->helperText('Automatically calculated as 18% of (subtotal + shipping)')
+                            ->dehydrateStateUsing(fn ($state) => $state ?? 0),
 
                         TextInput::make('shipping_amount')
                             ->label('Shipping Amount')
                             ->numeric()
-                            ->prefix('$')
-                            ->default(0),
+                            ->prefix('₪')
+                            ->default(0)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                self::recalculateSubtotal($set, $get);
+                            }),
 
                         TextInput::make('total')
                             ->label('Total')
                             ->numeric()
-                            ->prefix('$')
-                            ->disabled(),
+                            ->prefix('₪')
+                            ->disabled()
+                            ->dehydrateStateUsing(fn ($state) => $state ?? 0),
+
+                        Forms\Components\Placeholder::make('calculation_breakdown')
+                            ->label('Calculation Breakdown')
+                            ->content(function (callable $get) {
+                                $subtotal = (float) ($get('subtotal') ?? 0);
+                                $shipping = (float) ($get('shipping_amount') ?? 0);
+                                $tax = (float) ($get('tax_amount') ?? 0);
+                                $total = $subtotal + $tax + $shipping;
+                                $taxableAmount = $subtotal + $shipping;
+                                
+                                return new HtmlString("
+                                    <div class='space-y-1 text-sm'>
+                                        <div>Subtotal: ₪" . number_format($subtotal, 2) . "</div>
+                                        <div>Shipping: ₪" . number_format($shipping, 2) . "</div>
+                                        <div class='text-xs text-gray-600'>Tax Base (Subtotal + Shipping): ₪" . number_format($taxableAmount, 2) . "</div>
+                                        <div>Tax (18%): ₪" . number_format($tax, 2) . "</div>
+                                        <div class='font-semibold border-t pt-1'>Total: ₪" . number_format($total, 2) . "</div>
+                                    </div>
+                                ");
+                            })
+                            ->columnSpanFull(),
                     ]),
 
                 Section::make('Shipping Address')
@@ -204,24 +251,53 @@ class OrderResource extends Resource
                     ->schema([
                         TextInput::make('shipping_address.address_line_1')
                             ->label('Address Line 1')
-                            ->required(),
+                            ->required()
+                            ->disabled(fn (callable $get) => !empty($get('user_id')))
+                            ->helperText(fn (callable $get) => !empty($get('user_id')) ? 'Address autofilled from customer profile' : 'Select a customer to autofill address'),
                         TextInput::make('shipping_address.address_line_2')
-                            ->label('Address Line 2'),
+                            ->label('Address Line 2')
+                            ->disabled(fn (callable $get) => !empty($get('user_id'))),
                         TextInput::make('shipping_address.city')
                             ->label('City')
-                            ->required(),
+                            ->required()
+                            ->disabled(fn (callable $get) => !empty($get('user_id'))),
                         TextInput::make('shipping_address.state')
                             ->label('State')
-                            ->required(),
+                            ->required()
+                            ->disabled(fn (callable $get) => !empty($get('user_id'))),
                         TextInput::make('shipping_address.postal_code')
                             ->label('Postal Code')
-                            ->required(),
+                            ->required()
+                            ->disabled(fn (callable $get) => !empty($get('user_id'))),
                         TextInput::make('shipping_address.country')
                             ->label('Country')
                             ->default('US')
-                            ->required(),
+                            ->required()
+                            ->disabled(fn (callable $get) => !empty($get('user_id'))),
                         TextInput::make('shipping_address.phone')
-                            ->label('Phone'),
+                            ->label('Phone')
+                            ->disabled(fn (callable $get) => !empty($get('user_id'))),
+                        
+                        Forms\Components\Actions::make([
+                            Forms\Components\Actions\Action::make('clear_customer')
+                                ->label('Clear Customer & Enable Manual Address')
+                                ->icon('heroicon-o-x-mark')
+                                ->color('danger')
+                                ->action(function (callable $set, callable $get) {
+                                    $set('user_id', null);
+                                    $set('shipping_address', [
+                                        'address_line_1' => '',
+                                        'address_line_2' => '',
+                                        'city' => '',
+                                        'state' => '',
+                                        'postal_code' => '',
+                                        'country' => 'US',
+                                        'phone' => '',
+                                    ]);
+                                })
+                                ->visible(fn (callable $get) => !empty($get('user_id'))),
+                        ])
+                            ->columnSpanFull(),
                     ]),
 
                 Section::make('Order Notes')
@@ -236,6 +312,7 @@ class OrderResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['items']))
             ->columns([
                 TextColumn::make('order_number')
                     ->label('Order #')
@@ -273,9 +350,8 @@ class OrderResource extends Resource
 
                 TextColumn::make('total')
                     ->label('Total')
-                    ->money('USD')
-                    ->sortable()
-                    ->formatStateUsing(fn ($record) => number_format($record->total, 2)),
+                    ->money('ILS')
+                    ->sortable(),
 
                 TextColumn::make('items_count')
                     ->label('Items')
@@ -428,5 +504,69 @@ public static function canView($record): bool
         
         // Regular users can create orders they have permission for
         return $user->hasPermissionTo('orders.create');
+    }
+
+/**
+     * Fill customer address when customer is selected
+     */
+    private static function fillCustomerAddress($userId, callable $set, callable $get): void
+    {
+        if (empty($userId)) {
+            // Clear address fields when no customer is selected
+            $set('shipping_address', [
+                'address_line_1' => '',
+                'address_line_2' => '',
+                'city' => '',
+                'state' => '',
+                'postal_code' => '',
+                'country' => 'US',
+                'phone' => '',
+            ]);
+            return;
+        }
+
+        // Get customer data
+        $customer = \App\Models\User::find($userId);
+        
+        if ($customer) {
+            $shippingAddress = [
+                'address_line_1' => $customer->address ?? '',
+                'address_line_2' => '', // User model doesn't have address_line_2
+                'city' => $customer->city ?? '',
+                'state' => '', // User model doesn't have state field
+                'postal_code' => $customer->postal_code ?? '',
+                'country' => $customer->country ?? 'US',
+                'phone' => $customer->phone ?? '',
+            ];
+            
+            $set('shipping_address', $shippingAddress);
+        }
+    }
+
+/**
+     * Recalculate subtotal and tax based on order items and shipping
+     */
+    private static function recalculateSubtotal(callable $set, callable $get): void
+    {
+        $items = $get('items') ?? [];
+        $subtotal = 0;
+        
+        if (is_array($items)) {
+            foreach ($items as $item) {
+                if (isset($item['total_price'])) {
+                    $subtotal += (float) $item['total_price'];
+                }
+            }
+        }
+        
+        $shipping = (float) ($get('shipping_amount') ?? 0);
+        
+        // Calculate tax as 18% of (subtotal + shipping)
+        $tax = round(($subtotal + $shipping) * 0.18, 2);
+        
+        // Set calculated values
+        $set('subtotal', $subtotal);
+        $set('tax_amount', $tax);
+        $set('total', $subtotal + $tax + $shipping);
     }
 }
