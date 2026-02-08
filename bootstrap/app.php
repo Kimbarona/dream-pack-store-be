@@ -29,6 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\TrustProxies::class,
         ]);
 
+        $middleware->api(prepend: [
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
+
         $middleware->alias([
             'web' => \Illuminate\Cookie\Middleware\EncryptCookies::class,
             'redirect.if.not.admin' => \App\Http\Middleware\RedirectIfNotAdmin::class,
