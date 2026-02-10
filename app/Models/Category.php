@@ -21,6 +21,7 @@ class Category extends Model
         'meta_title',
         'meta_description',
         'is_active',
+        'tag',
     ];
 
     protected $casts = [
@@ -42,6 +43,11 @@ class Category extends Model
         return $this->belongsToMany(Product::class, 'category_product');
     }
 
+    public function directProducts(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
@@ -50,5 +56,36 @@ class Category extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('sort_order');
+    }
+
+    public function getCategoryNameAttribute(): string
+    {
+        return $this->name;
+    }
+
+    public function getDescriptionAttribute(): ?string
+    {
+        return $this->attributes['description'] ?? null;
+    }
+
+    public function getParentAttribute(): ?string
+    {
+        // Check if the relationship is loaded
+        if (array_key_exists('parent', $this->relations) && $this->relations['parent'] !== null) {
+            return $this->relations['parent']->name;
+        }
+        
+        // If not loaded, try to access it safely
+        try {
+            $parent = $this->getRelationValue('parent');
+            return $parent?->name;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    public function getTagAttribute(): ?string
+    {
+        return $this->attributes['tag'] ?? null;
     }
 }

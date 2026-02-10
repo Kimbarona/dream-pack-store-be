@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ProductFilterRequest;
 use App\Http\Resources\Api\ProductListResource;
 use App\Http\Resources\Api\ProductDetailResource;
+use App\Http\Resources\Api\ProductFrontendCollection;
+use App\Http\Resources\Api\ProductFrontendResource;
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Http\Request;
@@ -21,10 +23,18 @@ class ProductController extends Controller
 
     public function index(ProductFilterRequest $request)
     {
-        // Lightweight query for list views
-        $query = Product::with(['categories', 'images' => function($q) {
-                $q->where('is_featured', true)->limit(1);
-            }])
+        // Lightweight query for list views with variants
+        $query = Product::with([
+                'category.parent',
+                'categories',
+                'variants.color',
+                'variants.size', 
+                'variants.packOption',
+                'variants.images',
+                'images' => function($q) {
+                    $q->where('is_featured', true)->limit(1);
+                }
+            ])
             ->where('is_active', true)
             ->whereNull('deleted_at');
 
@@ -39,12 +49,26 @@ class ProductController extends Controller
             }
         }
 
-        // Price range filter
+        // Price range filter - check variant prices
         if ($request->has('price_min')) {
-            $query->where('price', '>=', (float) $request->price_min);
+            $query->where(function (Builder $q) use ($request) {
+                $q->whereHas('variants', function (Builder $variantQuery) use ($request) {
+                    $variantQuery->where('price', '>=', (float) $request->price_min)->where('is_active', true);
+                })->orWhere(function (Builder $productQuery) use ($request) {
+                    $productQuery->where('price', '>=', (float) $request->price_min)
+                                 ->whereDoesntHave('variants');
+                });
+            });
         }
         if ($request->has('price_max')) {
-            $query->where('price', '<=', (float) $request->price_max);
+            $query->where(function (Builder $q) use ($request) {
+                $q->whereHas('variants', function (Builder $variantQuery) use ($request) {
+                    $variantQuery->where('price', '<=', (float) $request->price_max)->where('is_active', true);
+                })->orWhere(function (Builder $productQuery) use ($request) {
+                    $productQuery->where('price', '<=', (float) $request->price_max)
+                                 ->whereDoesntHave('variants');
+                });
+            });
         }
 
         // Search filter
@@ -57,11 +81,18 @@ class ProductController extends Controller
             });
         }
 
-        // Stock filter
+        // Stock filter - check variants or product stock
         if ($request->boolean('in_stock')) {
             $query->where(function (Builder $q) {
-                $q->where('stock_qty', '>', 0)
-                      ->orWhere('track_inventory', false);
+                $q->whereHas('variants', function (Builder $variantQuery) {
+                    $variantQuery->where('stock_qty', '>', 0)->where('is_active', true);
+                })
+                ->orWhere(function (Builder $productQuery) {
+                    $productQuery->where('stock_qty', '>', 0)
+                                ->where('track_inventory', true)
+                                ->whereDoesntHave('variants');
+                })
+                ->orWhere('track_inventory', false);
             });
         }
 
@@ -85,13 +116,25 @@ class ProductController extends Controller
             });
         }
 
-        // Sorting
+        // Sorting - handle variant pricing
         switch ($request->input('sort', 'manual')) {
             case 'price_asc':
-                $query->orderBy('price', 'asc');
+                $query->orderBy(function (Builder $q) {
+                    $q->selectRaw('MIN(CASE WHEN variants.price IS NOT NULL THEN variants.price ELSE products.price END)')
+                      ->from('variants')
+                      ->whereColumn('variants.product_id', 'products.id')
+                      ->where('variants.is_active', true)
+                      ->limit(1);
+                })->orderBy('title', 'asc');
                 break;
             case 'price_desc':
-                $query->orderBy('price', 'desc');
+                $query->orderByDesc(function (Builder $q) {
+                    $q->selectRaw('MIN(CASE WHEN variants.price IS NOT NULL THEN variants.price ELSE products.price END)')
+                      ->from('variants')
+                      ->whereColumn('variants.product_id', 'products.id')
+                      ->where('variants.is_active', true)
+                      ->limit(1);
+                })->orderBy('title', 'asc');
                 break;
             case 'newest':
                 $query->orderBy('created_at', 'desc');
@@ -105,12 +148,34 @@ class ProductController extends Controller
             $request->input('per_page', 12)
         );
 
-        return ProductListResource::collection($products);
+        return response()->json([
+            'success' => true,
+            'message' => 'Products retrieved successfully',
+            'data' => [
+                'products' => ProductFrontendResource::collection($products->items()),
+                'pagination' => [
+                    'current_page' => $products->currentPage(),
+                    'last_page' => $products->lastPage(),
+                    'per_page' => $products->perPage(),
+                    'total' => $products->total(),
+                    'has_more' => $products->hasMorePages(),
+                ]
+            ]
+        ]);
     }
 
     public function show(string $slug): JsonResponse
     {
-        $product = Product::with(['categories', 'attributeValues.attribute', 'images'])
+        $product = Product::with([
+                'category.parent',
+                'categories',
+                'variants.color',
+                'variants.size', 
+                'variants.packOption',
+                'variants.images',
+                'images',
+                'attributeValues.attribute'
+            ])
             ->where('slug', $slug)
             ->where('is_active', true)
             ->whereNull('deleted_at')
@@ -125,7 +190,7 @@ class ProductController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new ProductListResource($product),
+            'data' => new ProductFrontendResource($product),
         ]);
     }
 

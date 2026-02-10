@@ -6,7 +6,11 @@ use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductColor;
+use App\Models\ProductVariant;
 use App\Models\Category;
+use App\Models\Color;
+use App\Models\Size;
+use App\Models\PackOption;
 use App\Filament\Traits\HasModuleAccess;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -166,8 +170,105 @@ return $form
                     ])
                     ->collapsible(),
 
+                Forms\Components\Section::make('Product Variants')
+                    ->description('Manage product variants with different colors, sizes, and pack options. Each variant has its own SKU, price, and stock.')
+                    ->schema([
+                        Forms\Components\Repeater::make('variants')
+                            ->relationship()
+                            ->schema([
+                                Forms\Components\Select::make('color_id')
+                                    ->label('Color')
+                                    ->options(Color::pluck('name', 'id'))
+                                    ->searchable()
+                                    ->placeholder('Select color (optional)'),
+                                Forms\Components\Select::make('size_id')
+                                    ->label('Size')
+                                    ->options(Size::pluck('name', 'id'))
+                                    ->searchable()
+                                    ->placeholder('Select size (optional)'),
+                                Forms\Components\Select::make('pack_option_id')
+                                    ->label('Pack Size')
+                                    ->options(PackOption::pluck('label', 'id'))
+                                    ->searchable()
+                                    ->placeholder('Select pack size (optional)'),
+                                Forms\Components\TextInput::make('sku')
+                                    ->label('SKU')
+                                    ->required()
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('price')
+                                    ->label('Price')
+                                    ->required()
+                                    ->numeric()
+                                    ->prefix('₪')
+                                    ->step(0.01),
+                                Forms\Components\TextInput::make('sale_price')
+                                    ->label('Sale Price')
+                                    ->numeric()
+                                    ->prefix('₪')
+                                    ->step(0.01),
+                                Forms\Components\TextInput::make('stock_qty')
+                                    ->label('Stock Quantity')
+                                    ->required()
+                                    ->numeric()
+                                    ->default(0),
+                                Forms\Components\KeyValue::make('attributes')
+                                    ->label('Additional Attributes')
+                                    ->keyLabel('Attribute Name')
+                                    ->valueLabel('Attribute Value')
+                                    ->addable()
+                                    ->deletable()
+                                    ->columnSpanFull(),
+                                Forms\Components\Toggle::make('is_active')
+                                    ->label('Active')
+                                    ->default(true),
+                                Forms\Components\Section::make('Variant Images')
+                                    ->description('Upload images specific to this variant')
+                                    ->schema([
+                                        Forms\Components\Repeater::make('variant_images')
+                                            ->schema([
+                                                Forms\Components\FileUpload::make('path')
+                                                    ->label('Image')
+                                                    ->image()
+                                                    ->imageEditor()
+                                                    ->directory('products/variants')
+                                                    ->visibility('public')
+                                                    ->disk('public')
+                                                    ->required(),
+                                                Forms\Components\TextInput::make('alt_text')
+                                                    ->label('Alt Text')
+                                                    ->maxLength(255),
+                                                Forms\Components\TextInput::make('sort_order')
+                                                    ->label('Sort Order')
+                                                    ->numeric()
+                                                    ->default(0),
+                                            ])
+                                            ->columns(2)
+                                            ->collapsed()
+                                            ->collapsible()
+                                            ->itemLabel(fn (array $state): ?string => 
+                                                !empty($state['alt_text']) ? $state['alt_text'] : 
+                                                (!empty($state['path']) ? 'Variant Image' : 'New Image'))
+                                            ->addable('Add Image')
+                                            ->deletable('Remove Image'),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed()
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(3)
+                            ->collapsed()
+                            ->collapsible()
+                            ->itemLabel(fn (array $state): ?string => 
+                                $state['sku'] ?? 'New Variant')
+                            ->addable('Add Variant')
+                            ->deletable('Remove Variant'),
+                        
+                        
+                    ])
+                    ->collapsible(),
+
                 Forms\Components\Section::make('Product Colors')
-                    ->description('Define product color variations with optional images.')
+                    ->description('Define product color variations with optional images (Legacy - use variants instead)')
                     ->schema([
                         Forms\Components\Repeater::make('colors')
                             ->relationship()
