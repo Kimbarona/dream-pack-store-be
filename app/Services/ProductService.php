@@ -12,11 +12,21 @@ use Illuminate\Http\UploadedFile;
 
 class ProductService
 {
+    private TranslationService $translationService;
+
+    public function __construct(TranslationService $translationService)
+    {
+        $this->translationService = $translationService;
+    }
+
     public function createProduct(array $data, array $images = []): Product
     {
         return DB::transaction(function () use ($data, $images) {
             // Extract product fields
             $productData = $this->extractProductFields($data);
+            
+            // Generate meta_description from description
+            $productData['meta_description'] = $this->generateMetaDescription($data['description']);
             
             // Create product
             $product = Product::create($productData);
@@ -53,6 +63,11 @@ class ProductService
         return DB::transaction(function () use ($product, $data, $images) {
             // Extract product fields
             $productData = $this->extractProductFields($data);
+            
+            // Check if description has changed, if so regenerate meta_description
+            if (isset($data['description']) && $data['description'] !== $product->description) {
+                $productData['meta_description'] = $this->generateMetaDescription($data['description']);
+            }
             
             // Store old values for logging
             $oldValues = [
@@ -155,7 +170,6 @@ class ProductService
             'track_inventory' => $data['track_inventory'] ?? false,
             'sort_order' => $data['sort_order'],
             'meta_title' => $data['meta_title'] ?? null,
-            'meta_description' => $data['meta_description'] ?? null,
             'pieces_per_package' => $data['pieces_per_package'],
             'is_active' => $data['is_active'] ?? false,
         ];
@@ -193,6 +207,20 @@ class ProductService
         }
     }
     
+    /**
+     * Generate meta_description array from description
+     * 
+     * @param string $description
+     * @return array
+     */
+    private function generateMetaDescription(string $description): array
+    {
+        return [
+            'en' => $description,
+            'he' => $this->translationService->translateEnToHe($description)
+        ];
+    }
+
     private function logActivity(string $action, Product $product, array $properties = []): void
     {
         ActivityLog::create([

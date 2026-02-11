@@ -79,8 +79,6 @@ return $form
                     ->required(),
                 Forms\Components\TextInput::make('meta_title')
                     ->maxLength(255),
-                Forms\Components\Textarea::make('meta_description')
-                    ->columnSpanFull(),
                 Forms\Components\TextInput::make('pieces_per_package')
                     ->label('Pieces per Pack')
                     ->required()

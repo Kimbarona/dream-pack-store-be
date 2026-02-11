@@ -26,7 +26,6 @@ class Product extends Model
         'sort_order',
         'is_active',
         'meta_title',
-        'meta_description',
         'pieces_per_package',
         'rating',
         'sold_count',
@@ -39,6 +38,7 @@ class Product extends Model
         'is_active' => 'boolean',
         'track_inventory' => 'boolean',
         'base_description' => 'array',
+        'meta_description' => 'array',
         'rating' => 'decimal:2',
         'sold_count' => 'integer',
     ];
