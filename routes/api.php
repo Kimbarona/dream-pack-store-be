@@ -54,6 +54,7 @@ Route::get('/banners/{banner}', [BannerController::class, 'show'])->name('api.ba
 Route::get('/categories', [CategoryController::class, 'index'])->name('api.categories.index');
 Route::get('/categories/{slug}', [CategoryController::class, 'show'])->name('api.categories.show');
 Route::get('/products', [ProductController::class, 'index'])->name('api.products.index');
+Route::get('/products/featured', [ProductController::class, 'featured'])->name('api.products.featured');
 Route::get('/products/{slug}', [ProductController::class, 'show'])->name('api.products.show');
 Route::get('/search', [SearchController::class, 'search'])->name('api.search');
 

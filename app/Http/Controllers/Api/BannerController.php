@@ -16,8 +16,7 @@ class BannerController extends Controller
     {
         $limit = $request->get('limit', 10);
         
-        $banners = Banner::with('images')
-            ->displayed()
+        $banners = Banner::displayed()
             ->take($limit)
             ->get()
             ->map(function ($banner) {
@@ -27,14 +26,9 @@ class BannerController extends Controller
                     'title' => $banner->title,
                     'subtitle' => $banner->subtitle,
                     'link_url' => $banner->link_url,
+                    'image' => $banner->image,
+                    'image_url' => $banner->image_url,
                     'sort_order' => $banner->sort_order,
-                    'images' => $banner->images->map(function ($image) {
-                        return [
-                            'url' => $image->url,
-                            'is_mobile' => $image->is_mobile,
-                            'sort_order' => $image->sort_order,
-                        ];
-                    }),
                 ];
             });
 
@@ -46,8 +40,6 @@ class BannerController extends Controller
      */
     public function show(Banner $banner): JsonResponse
     {
-        $banner->load('images');
-        
         return response()->json([
             'success' => true,
             'data' => [
@@ -56,17 +48,12 @@ class BannerController extends Controller
                 'title' => $banner->title,
                 'subtitle' => $banner->subtitle,
                 'link_url' => $banner->link_url,
+                'image' => $banner->image,
+                'image_url' => $banner->image_url,
                 'is_active' => $banner->is_active,
                 'sort_order' => $banner->sort_order,
                 'starts_at' => $banner->starts_at,
                 'ends_at' => $banner->ends_at,
-                'images' => $banner->images->map(function ($image) {
-                    return [
-                        'url' => $image->url,
-                        'is_mobile' => $image->is_mobile,
-                        'sort_order' => $image->sort_order,
-                    ];
-                }),
                 'created_at' => $banner->created_at,
             ],
         ]);

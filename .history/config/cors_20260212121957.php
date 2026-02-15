@@ -21,7 +21,7 @@ return [
 
     // 'allowed_origins' => ['http://localhost:3000'], /* Change in production */
 
-    'allowed_origins' => ['http://localhost:3000'],
+    'allowed_origins' => ['http://localhost:3004'],
 
     'allowed_origins_patterns' => [],
 

@@ -30,6 +30,22 @@ class Banner extends Model
         'image' => 'string',
     ];
 
+    protected function imageUrl(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::get(function ($value) {
+            $image = $this->image;
+            if (!$image) {
+                return null;
+            }
+            // If it's already a valid URL, return it directly
+            if (filter_var($image, FILTER_VALIDATE_URL)) {
+                return $image;
+            }
+            // Otherwise, it's a local file path
+            return \Illuminate\Support\Facades\Storage::url($image);
+        });
+    }
+
     public function images(): HasMany
     {
         return $this->hasMany(BannerImage::class)->orderBy('sort_order');

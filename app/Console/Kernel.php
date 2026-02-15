@@ -44,6 +44,14 @@ class Kernel extends ConsoleKernel
         $schedule->command('cache:clear')
           ->daily()
           ->description('Daily cache cleanup');
+
+        $schedule->command('banners:deactivate-expired')
+          ->hourly()
+          ->description('Deactivate banners whose end date has passed');
+
+        $schedule->command('banners:activate-scheduled')
+          ->hourly()
+          ->description('Activate banners whose start date has arrived');
     }
 
     protected function commands(): void

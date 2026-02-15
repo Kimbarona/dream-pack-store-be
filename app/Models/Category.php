@@ -58,6 +58,19 @@ class Category extends Model
         return $query->orderBy('sort_order');
     }
 
+    public static function getDescendantsAndSelf(int $categoryId): array
+    {
+        $ids = [$categoryId];
+        
+        $children = Category::where('parent_id', $categoryId)->pluck('id');
+        while ($children->isNotEmpty()) {
+            $ids = array_merge($ids, $children->toArray());
+            $children = Category::whereIn('parent_id', $children)->pluck('id');
+        }
+        
+        return $ids;
+    }
+
     public function getCategoryNameAttribute(): string
     {
         return $this->name;

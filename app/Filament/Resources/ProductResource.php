@@ -77,6 +77,10 @@ return $form
                     ->default(0),
                 Forms\Components\Toggle::make('is_active')
                     ->required(),
+                Forms\Components\Toggle::make('is_featured')
+                    ->label('Featured Product')
+                    ->helperText('Display this product in featured products section')
+                    ->required(),
                 Forms\Components\TextInput::make('meta_title')
                     ->maxLength(255),
                 Forms\Components\TextInput::make('pieces_per_package')
@@ -410,6 +414,11 @@ return $form
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean(),
+                Tables\Columns\IconColumn::make('is_featured')
+                    ->label('Featured')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-star')
+                    ->falseIcon('heroicon-o-star'),
                 Tables\Columns\TextColumn::make('meta_title')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -442,6 +451,11 @@ return $form
                     ->placeholder('All')
                     ->trueLabel('Active')
                     ->falseLabel('Inactive'),
+                Tables\Filters\TernaryFilter::make('is_featured')
+                    ->label('Featured Status')
+                    ->placeholder('All')
+                    ->trueLabel('Featured')
+                    ->falseLabel('Not Featured'),
                 Tables\Filters\SelectFilter::make('stock_status')
                     ->label('Stock Status')
                     ->options([

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Models\Banner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Route;
@@ -16,6 +17,10 @@ Route::get('/health', function () {
         'environment' => app()->environment(),
         'version' => '1.0.0',
     ]);
+});
+
+Route::get('/banners/preview/{banner}', function (Banner $banner) {
+    return view('banner-preview', ['banner' => $banner]);
 });
 
 Route::get('/dashboard', function () {

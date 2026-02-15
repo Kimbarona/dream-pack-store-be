@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\BannerResource\Pages;
-use App\Filament\Resources\BannerResource\RelationManagers\ImagesRelationManager;
 use App\Models\Banner;
 use App\Filament\Traits\HasModuleAccess;
 use Filament\Forms;
@@ -55,10 +54,9 @@ public static function form(Form $form): Form
 
                         TextInput::make('link_url')
                             ->label('Link URL')
-                            ->url()
                             ->maxLength(255)
-                            ->placeholder('https://example.com')
-                            ->helperText('URL where users will be redirected when clicking banner'),
+                            ->placeholder('/products?category=flexible-packaging')
+                            ->helperText('URL where users will be redirected when clicking banner (relative or absolute)'),
                     ]),
 
                 Section::make('Banner Image')
@@ -127,12 +125,11 @@ public static function form(Form $form): Form
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('image')
+                Tables\Columns\ImageColumn::make('image_url')
                     ->label('Image')
                     ->size(100)
                     ->circular(false)
-                    ->defaultImageUrl(url('/images/default-banner.jpg'))
-                    ->getStateUsing(fn ($record) => $record->image ? \Illuminate\Support\Facades\Storage::url($record->image) : null),
+                    ->defaultImageUrl(url('/images/default-banner.jpg')),
 
                 Tables\Columns\TextColumn::make('name')
                     ->label('Name')
@@ -158,6 +155,21 @@ public static function form(Form $form): Form
                     ->label('Active')
                     ->boolean()
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('schedule')
+                    ->label('Schedule')
+                    ->getStateUsing(function (Banner $record) {
+                        if ($record->starts_at && $record->ends_at) {
+                            return $record->starts_at->format('M d, H:i') . ' - ' . $record->ends_at->format('M d, H:i');
+                        } elseif ($record->starts_at) {
+                            return 'From: ' . $record->starts_at->format('M d, H:i');
+                        } elseif ($record->ends_at) {
+                            return 'Until: ' . $record->ends_at->format('M d, H:i');
+                        }
+                        return null;
+                    })
+                    ->placeholder('No schedule')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('sort_order')
                     ->label('Order')
@@ -201,10 +213,16 @@ public static function form(Form $form): Form
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Action::make('toggle_active')
+                    ->label(fn (Banner $record): string => $record->is_active ? 'Deactivate' : 'Activate')
+                    ->icon(fn (Banner $record): string => $record->is_active ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
+                    ->color(fn (Banner $record): string => $record->is_active ? 'danger' : 'success')
+                    ->requiresConfirmation()
+                    ->action(fn (Banner $record) => $record->update(['is_active' => !$record->is_active])),
                 Action::make('preview')
                     ->label('Preview')
                     ->icon('heroicon-o-eye')
-                    ->url(fn (Banner $record): string => "/api/banners/{$record->id}")
+                    ->url(fn (Banner $record): string => "/banners/preview/{$record->id}")
                     ->openUrlInNewTab(),
                 Tables\Actions\DeleteAction::make(),
             ])
@@ -228,9 +246,7 @@ public static function form(Form $form): Form
 
     public static function getRelations(): array
     {
-        return [
-            ImagesRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array

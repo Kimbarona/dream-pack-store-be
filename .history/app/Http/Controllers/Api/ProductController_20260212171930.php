@@ -161,8 +161,7 @@ class ProductController extends Controller
                     'has_more' => $products->hasMorePages(),
                 ]
             ]
-        ]);
-    }    
+    ]);
 
     public function featured(Request $request): JsonResponse
     {
@@ -243,6 +242,14 @@ class ProductController extends Controller
 
     private function getCategoryIds(Category $category): array
     {
-        return Category::getDescendantsAndSelf($category->id);
+        $ids = [$category->id];
+        
+        // Get all descendants recursively
+        $children = Category::where('parent_id', $category->id)->get();
+        foreach ($children as $child) {
+            $ids = array_merge($ids, $this->getCategoryIds($child));
+        }
+        
+        return $ids;
     }
 }

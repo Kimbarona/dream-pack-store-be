@@ -43,8 +43,8 @@
                 
                 <!-- Desktop Image -->
                 <div class="hidden lg:block">
-                    @if($banner->image_path)
-                        <img src="{{ asset($banner->image_path) }}" alt="{{ $banner->title ?? 'Banner' }}" class="w-full h-auto">
+                    @if($banner->image_url)
+                        <img src="{{ $banner->image_url }}" alt="{{ $banner->title ?? 'Banner' }}" class="w-full h-auto">
                     @else
                         <div class="bg-gray-200 h-96 flex items-center justify-center">
                             <p class="text-gray-500">No desktop image uploaded</p>
@@ -54,10 +54,8 @@
 
                 <!-- Mobile Image -->
                 <div class="lg:hidden">
-                    @if($banner->image_mobile_path)
-                        <img src="{{ asset($banner->image_mobile_path) }}" alt="{{ $banner->title ?? 'Banner' }}" class="w-full h-auto">
-                    @elseif($banner->image_path)
-                        <img src="{{ asset($banner->image_path) }}" alt="{{ $banner->title ?? 'Banner' }}" class="w-full h-auto">
+                    @if($banner->image_url)
+                        <img src="{{ $banner->image_url }}" alt="{{ $banner->title ?? 'Banner' }}" class="w-full h-auto">
                     @else
                         <div class="bg-gray-200 h-48 flex items-center justify-center">
                             <p class="text-gray-500">No mobile image uploaded</p>
