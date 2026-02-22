@@ -16,36 +16,17 @@ class StoreOrderRequest extends FormRequest
     public function rules()
     {
         return [
+            'user_id' => 'nullable|integer|exists:users,id',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1|max:100',
+            'items.*.price' => 'nullable|numeric|min:0',
             'items.*.size' => 'nullable|string|max:50',
             'items.*.color' => 'nullable|string|max:50',
-            
-            'shipping_address' => 'required|array',
-            'shipping_address.first_name' => 'required|string|max:255',
-            'shipping_address.last_name' => 'required|string|max:255',
-            'shipping_address.email' => 'required|email|max:255',
-            'shipping_address.phone' => 'required|string|max:50',
-            'shipping_address.address' => 'required|string|max:500',
-            'shipping_address.city' => 'required|string|max:255',
-            'shipping_address.state' => 'required|string|max:255',
-            'shipping_address.postal_code' => 'required|string|max:20',
-            'shipping_address.country' => 'required|string|max:2',
-            
-            'billing_address' => 'nullable|array',
-            'billing_address.first_name' => 'required_with:billing_address|string|max:255',
-            'billing_address.last_name' => 'required_with:billing_address|string|max:255',
-            'billing_address.email' => 'required_with:billing_address|email|max:255',
-            'billing_address.phone' => 'required_with:billing_address|string|max:50',
-            'billing_address.address' => 'required_with:billing_address|string|max:500',
-            'billing_address.city' => 'required_with:billing_address|string|max:255',
-            'billing_address.state' => 'required_with:billing_address|string|max:255',
-            'billing_address.postal_code' => 'required_with:billing_address|string|max:20',
-            'billing_address.country' => 'required_with:billing_address|string|max:2',
+            'items.*.pieces_per_package' => 'nullable|integer|min:1',
             
             'notes' => 'nullable|string|max:1000',
-            'payment_method' => 'required|string|in:crypto,traditional',
+            'payment_method' => 'nullable|string|in:crypto,traditional',
         ];
     }
 
@@ -56,23 +37,18 @@ class StoreOrderRequest extends FormRequest
             'items.min' => 'Your cart is empty. Please add items to create an order.',
             'items.*.product_id.exists' => 'One or more products in your cart are no longer available.',
             'items.*.quantity.max' => 'Maximum quantity per item is 100.',
-            'shipping_address.required' => 'Shipping address is required.',
             'payment_method.in' => 'Invalid payment method selected.',
         ];
     }
 
     protected function prepareForValidation()
     {
-        if ($this->billing_address === null) {
+        // If payment_method is not provided, default to traditional
+        if (!$this->has('payment_method')) {
             $this->merge([
-                'billing_address' => $this->shipping_address,
+                'payment_method' => 'traditional',
             ]);
         }
-    }
-
-    public function getBillingAddress()
-    {
-        return $this->billing_address ?? $this->shipping_address;
     }
 
     public function getTotalQuantity()
@@ -103,9 +79,27 @@ class StoreOrderRequest extends FormRequest
                 continue;
             }
 
-            if (!empty($item['size']) && $product->size !== $item['size']) {
-                $errors["items.{$index}.size"] = "Size '{$item['size']}' not available for '{$product->title}'.";
-                continue;
+            if (!empty($item['size'])) {
+                $productSize = $product->size;
+                $availableSizes = $product->available_sizes ?? [];
+                
+                // Only validate if product has a specific size set
+                if ($productSize && $productSize !== $item['size']) {
+                    $errors["items.{$index}.size"] = "Size '{$item['size']}' not available for '{$product->title}'.";
+                }
+                // Only validate if product has predefined sizes list
+                elseif (!empty($availableSizes) && !in_array($item['size'], $availableSizes)) {
+                    $errors["items.{$index}.size"] = "Size '{$item['size']}' not available for '{$product->title}'. Available: " . implode(', ', $availableSizes);
+                }
+            }
+            
+            if (!empty($item['color'])) {
+                $availableColors = $product->available_colors ?? [];
+                
+                // Only validate if product has predefined colors list
+                if (!empty($availableColors) && !in_array($item['color'], array_column($availableColors, 'name'))) {
+                    $errors["items.{$index}.color"] = "Color '{$item['color']}' not available for '{$product->title}'.";
+                }
             }
         }
 
@@ -116,10 +110,45 @@ class StoreOrderRequest extends FormRequest
 
     public function getOrderData()
     {
+        $user = Auth::user();
+        
+        $userId = $this->user_id ?? $user->id;
+        if ($this->user_id && $user->role !== 'admin') {
+            $userId = $user->id;
+        }
+
+        $targetUser = \App\Models\User::find($userId);
+        
+        if (!$targetUser) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'user_id' => ['User not found.'],
+            ]);
+        }
+
+        if (empty($targetUser->address) || empty($targetUser->city) || empty($targetUser->country)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'user_id' => ['Please add a shipping address to your profile before placing an order.'],
+            ]);
+        }
+
+        $shippingAddress = [
+            'name' => $targetUser->name,
+            'email' => $targetUser->email,
+            'phone' => $targetUser->phone,
+            'address' => $targetUser->address,
+            'city' => $targetUser->city,
+            'state' => null,
+            'postal_code' => $targetUser->postal_code,
+            'country' => $targetUser->country,
+        ];
+
+        $billingAddress = $shippingAddress;
+        $billingAddress['name'] = $this->input('billing_address.name') ?? $shippingAddress['name'];
+        
         return [
-            'user_id' => Auth::id(),
-            'shipping_address' => $this->shipping_address,
-            'billing_address' => $this->getBillingAddress(),
+            'user_id' => $userId,
+            'shipping_address' => $shippingAddress,
+            'billing_address' => $billingAddress,
             'notes' => $this->notes,
             'items' => $this->items,
             'payment_method' => $this->payment_method,

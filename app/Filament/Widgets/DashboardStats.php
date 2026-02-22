@@ -42,7 +42,7 @@ class DashboardStats extends BaseWidget
         
         // Total Revenue in date range (only from paid orders)
         $totalRevenue = Order::whereBetween('created_at', [$from, $to])
-            ->whereIn('status', ['paid_confirmed', 'processing', 'shipped'])
+            ->whereIn('status', ['processing', 'to_ship', 'shipped', 'delivered'])
             ->sum('total');
         
         // Orders by status for additional insights
@@ -51,7 +51,7 @@ class DashboardStats extends BaseWidget
             ->count();
             
         $paidOrders = Order::whereBetween('created_at', [$from, $to])
-            ->whereIn('status', ['paid_confirmed', 'processing', 'shipped'])
+            ->whereIn('status', ['processing', 'to_ship', 'shipped', 'delivered'])
             ->count();
         
         return [

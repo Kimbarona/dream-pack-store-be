@@ -33,7 +33,12 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Orders
     Route::post('/orders', [OrderController::class, 'store'])->name('api.orders.store');
+    Route::get('/orders', [OrderController::class, 'index'])->name('api.orders.index');
+    Route::get('/orders/user', [OrderController::class, 'showByUser'])->name('api.orders.show-by-user');
+    Route::get('/orders/by-user', [OrderController::class, 'getOrdersByUserId'])->name('api.orders.by-user');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('api.orders.show');
+    Route::post('/orders/{order}/cancel', [OrderController::class, 'cancelOrder'])->name('api.orders.cancel');
+    Route::post('/orders/{order}/delivered', [OrderController::class, 'markDelivered'])->name('api.orders.delivered');
     
     // Crypto payments
     Route::post('/payments/crypto/invoice/{order}', [CryptoPaymentController::class, 'createInvoice'])->name('api.payments.crypto.create');

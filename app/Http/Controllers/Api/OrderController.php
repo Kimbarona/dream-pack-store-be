@@ -9,12 +9,72 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
+    public function index(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            // Admin can view all orders, regular users see only their own
+            if ($user->role === 'admin' && $request->has('user_id')) {
+                $orders = Order::with(['items', 'user'])
+                    ->where('user_id', $request->user_id)
+                    ->orderBy('created_at', 'desc')
+                    ->paginate($request->get('per_page', 15));
+            } else {
+                $orders = Order::with(['items', 'user'])
+                    ->where('user_id', $user->id)
+                    ->orderBy('created_at', 'desc')
+                    ->paginate($request->get('per_page', 15));
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'orders' => collect($orders->items)->map(function ($order) {
+                        return [
+                            'id' => $order->id,
+                            'order_number' => $order->order_number,
+                            'status' => $order->status,
+                            'status_label' => $order->status_label,
+                            'subtotal' => $order->subtotal,
+                            'tax_amount' => $order->tax_amount,
+                            'shipping_amount' => $order->shipping_amount,
+                            'total' => $order->total,
+                            'total_items' => $order->total_items,
+                            'is_paid' => $order->is_paid(),
+                            'created_at' => $order->created_at,
+                        ];
+                    }),
+                    'pagination' => [
+                        'current_page' => $orders->currentPage(),
+                        'per_page' => $orders->perPage(),
+                        'total' => $orders->total(),
+                        'last_page' => $orders->lastPage(),
+                    ],
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch orders', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch orders.',
+                'debug' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
+        }
+    }
+
     public function store(StoreOrderRequest $request): JsonResponse
     {
         try {
@@ -51,21 +111,21 @@ class OrderController extends Controller
                     }
 
                     $chosenColor = null;
-                    if (!empty($itemData['color'])) {
-                        $colorAttribute = $product->availableColors()
-                            ->where('slug', $itemData['color'])
-                            ->first();
-                        
-                        if ($colorAttribute) {
-                            $chosenColor = [
-                                'id' => $colorAttribute->id,
-                                'value' => $colorAttribute->value,
-                                'slug' => $colorAttribute->slug,
-                            ];
-                        }
+                    $colorInput = $itemData['color'] ?? null;
+                    if (!empty($colorInput)) {
+                        $chosenColor = [
+                            'name' => $colorInput,
+                            'value' => $colorInput,
+                            'slug' => strtolower($colorInput),
+                        ];
+                    } elseif (!empty($itemData['chosen_color'])) {
+                        $chosenColor = $itemData['chosen_color'];
                     }
 
-                    $unitPrice = $product->price;
+                    $size = $itemData['size'] ?? $product->size;
+                    $piecesPerPackage = $itemData['pieces_per_package'] ?? $product->pieces_per_package;
+
+                    $unitPrice = isset($itemData['price']) ? (float) $itemData['price'] : $product->price;
                     $salePrice = $product->sale_price;
                     $effectivePrice = $salePrice && $salePrice < $unitPrice ? $salePrice : $unitPrice;
                     $totalPrice = $effectivePrice * $itemData['quantity'];
@@ -79,9 +139,9 @@ class OrderController extends Controller
                         'unit_price' => $unitPrice,
                         'sale_price' => $salePrice,
                         'total_price' => $totalPrice,
-                        'size' => $product->size,
+                        'size' => $size,
                         'chosen_color' => $chosenColor,
-                        'pieces_per_package' => $product->pieces_per_package,
+                        'pieces_per_package' => $piecesPerPackage,
                     ]);
 
                     $subtotal += $totalPrice;
@@ -229,11 +289,11 @@ class OrderController extends Controller
                     'notes' => $order->notes,
                     'created_at' => $order->created_at,
                     'updated_at' => $order->updated_at,
-                    'is_paid' => $order->is_paid(),
-                    'is_pending_payment' => $order->is_pending_payment(),
-                    'is_paid_unconfirmed' => $order->is_paid_unconfirmed(),
-                    'can_be_cancelled' => $order->can_be_cancelled(),
-                    'can_be_paid' => $order->can_be_paid,
+                    'is_paid' => $order->isPaid(),
+                    'is_pending_payment' => $order->isPendingPayment(),
+                    'is_paid_unconfirmed' => $order->isPaidUnconfirmed(),
+                    'can_be_cancelled' => $order->canBeCancelled(),
+                    'can_be_paid' => $order->canBePaid,
                     'is_completed' => $order->is_completed,
                     'formatted_total' => $order->formatted_total,
                 ],
@@ -269,5 +329,232 @@ class OrderController extends Controller
                 }),
             ]
         ]);
+    }
+
+    public function getOrdersByUserId(Request $request): JsonResponse
+    {
+        $request->validate([
+            'user_id' => 'required|string',
+        ]);
+
+        $orders = Order::with(['items.product', 'user'])
+            ->where('user_id', $request->user_id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'orders' => $orders->map(function ($order) {
+                    return [
+                        'id' => $order->id,
+                        'order_number' => $order->order_number,
+                        'status' => $order->status,
+                        'status_label' => $order->status_label,
+                        'subtotal' => $order->subtotal,
+                        'tax_amount' => $order->tax_amount,
+                        'shipping_amount' => $order->shipping_amount,
+                        'total' => $order->total,
+                        'total_items' => $order->total_items,
+                        'shipping_address' => $order->shipping_address,
+                        'created_at' => $order->created_at,
+                        'items' => $order->items->map(function ($item) {
+                            return [
+                                'id' => $item->id,
+                                'product_id' => $item->product_id,
+                                'product_title' => $item->product_title,
+                                'product_sku' => $item->product_sku,
+                                'quantity' => $item->quantity,
+                                'unit_price' => $item->unit_price,
+                                'total_price' => $item->total_price,
+                                'size' => $item->size,
+                                'chosen_color' => $item->chosen_color,
+                                'pieces_per_package' => $item->pieces_per_package,
+                                'image' => $item->product?->featured_image_url ?? null,
+                            ];
+                        }),
+                    ];
+                }),
+            ]
+        ], 200);
+    }
+
+    public function showByUser(Request $request): JsonResponse
+    {
+        $request->validate([
+            'order_id' => 'required|string',
+            'user_id' => 'required|string',
+        ]);
+
+        $order = Order::where('id', $request->order_id)->first();
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found',
+            ], 404);
+        }
+
+        if ((string) $order->user_id !== (string) $request->user_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found for this user',
+            ], 404);
+        }
+
+        $order->load(['items', 'user']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'order' => [
+                    'id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'status' => $order->status,
+                    'status_label' => $order->status_label,
+                    'subtotal' => $order->subtotal,
+                    'tax_amount' => $order->tax_amount,
+                    'shipping_amount' => $order->shipping_amount,
+                    'total' => $order->total,
+                    'total_items' => $order->total_items,
+                    'shipping_address' => $order->shipping_address,
+                    'billing_address' => $order->billing_address,
+                    'notes' => $order->notes,
+                    'created_at' => $order->created_at,
+                    'updated_at' => $order->updated_at,
+                    'formatted_total' => $order->formatted_total,
+                ],
+                'user' => [
+                    'id' => $order->user->id,
+                    'name' => $order->user->name,
+                    'email' => $order->user->email,
+                ],
+                    'items' => $order->items->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'product_title' => $item->product_title,
+                        'product_sku' => $item->product_sku,
+                        'quantity' => $item->quantity,
+                        'unit_price' => $item->unit_price,
+                        'total_price' => $item->total_price,
+                        'size' => $item->size,
+                        'chosen_color' => $item->chosen_color,
+                        'pieces_per_package' => $item->pieces_per_package,
+                    ];
+                }),
+            ]
+        ]);
+    }
+
+    public function cancelOrder(Request $request, $orderId): JsonResponse
+    {
+        try {
+            $order = Order::find($orderId);
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found',
+                ], 404);
+            }
+
+            if ((string) $order->user_id !== (string) Auth::id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found',
+                ], 404);
+            }
+
+            if (!$order->canBeCancelled()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order cannot be cancelled in its current status.',
+                ], 400);
+            }
+
+            $order->transitionStatus('cancelled');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order cancelled successfully',
+                'data' => [
+                    'order' => [
+                        'id' => $order->id,
+                        'order_number' => $order->order_number,
+                        'status' => $order->status,
+                        'status_label' => $order->status_label,
+                    ],
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to cancel order', [
+                'error' => $e->getMessage(),
+                'order_id' => $orderId,
+                'user_id' => Auth::id(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to cancel order.',
+                'debug' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
+        }
+    }
+
+    public function markDelivered(Request $request, $orderId): JsonResponse
+    {
+        try {
+            $order = Order::find($orderId);
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found',
+                ], 404);
+            }
+
+            if ((string) $order->user_id !== (string) Auth::id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found',
+                ], 404);
+            }
+
+            if ($order->status !== 'shipped') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order must be in shipped status to mark as delivered.',
+                ], 400);
+            }
+
+            $order->transitionStatus('delivered');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order marked as delivered',
+                'data' => [
+                    'order' => [
+                        'id' => $order->id,
+                        'order_number' => $order->order_number,
+                        'status' => $order->status,
+                        'status_label' => $order->status_label,
+                    ],
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to mark order as delivered', [
+                'error' => $e->getMessage(),
+                'order_id' => $orderId,
+                'user_id' => Auth::id(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to mark order as delivered.',
+                'debug' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
+        }
     }
 }

@@ -9,6 +9,7 @@ use App\Models\ProductVariant;
 use App\Models\ProductVariantImage;
 use App\Models\PackOption;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -19,6 +20,16 @@ class CreateProduct extends CreateRecord
     use HasBackAction;
     
     protected static string $resource = ProductResource::class;
+
+    private function generateUniqueSku(string $prefix = 'SP'): string
+    {
+        do {
+            $number = str_pad(random_int(1, 99999999), 8, '0', STR_PAD_LEFT);
+            $sku = $prefix . $number;
+        } while (ProductVariant::where('sku', $sku)->exists());
+        
+        return $sku;
+    }
 
     public function form(Form $form): Form
     {
@@ -67,6 +78,10 @@ class CreateProduct extends CreateRecord
             $imagesData = $variantData['variant_images'] ?? [];
             unset($variantData['variant_images']);
             
+            if (empty($variantData['sku'])) {
+                $variantData['sku'] = $this->generateUniqueSku();
+            }
+            
             $variant = $product->variants()->create($variantData);
             
             // Create variant images
@@ -86,12 +101,21 @@ class CreateProduct extends CreateRecord
             'color_id' => null,
             'size_id' => null,
             'pack_option_id' => $packOption?->id,
-            'sku' => $productData['sku'] ?? $product->slug . '-default',
+            'sku' => $productData['sku'] ?? ($product->slug . '-default'),
             'price' => $productData['price'] ?? 0,
             'sale_price' => $productData['sale_price'] ?? null,
             'stock_qty' => $productData['stock_qty'] ?? 0,
             'is_active' => true,
         ]);
+    }
+
+    private function ensureUniqueSku(Product $product, ?string $sku = null): string
+    {
+        if ($sku && !ProductVariant::where('sku', $sku)->exists()) {
+            return $sku;
+        }
+        
+        return $this->generateUniqueSku();
     }
     
     protected function getHeaderActions(): array

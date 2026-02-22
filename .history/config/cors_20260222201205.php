@@ -19,10 +19,8 @@ return [
 
     'allowed_methods' => ['*'],
 
-    // local
-    // 'allowed_origins' => ['http://localhost:3000'], /* Change in production or local */
+    // 'allowed_origins' => ['http://localhost:3000'], /* Change in production */
 
-    // Staging
     'allowed_origins' => ['https://dream-pack-store.vercel.app'],
 
     'allowed_origins_patterns' => [],

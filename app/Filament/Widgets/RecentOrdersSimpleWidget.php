@@ -44,9 +44,10 @@ class RecentOrdersSimpleWidget extends BaseWidget
                     ->badge()
                     ->color(fn ($state): string => match ($state) {
                         'pending_payment' => 'warning',
-                        'paid_confirmed' => 'success',
                         'processing' => 'info',
+                        'to_ship' => 'info',
                         'shipped' => 'primary',
+                        'delivered' => 'success',
                         'cancelled' => 'danger',
                         default => 'gray',
                     })

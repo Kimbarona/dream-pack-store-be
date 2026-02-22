@@ -27,7 +27,7 @@ class RevenueChart extends ChartWidget
         
         // Get daily revenue data
         $revenueData = Order::whereBetween('created_at', [$from, $to])
-            ->whereIn('status', ['paid_confirmed', 'processing', 'shipped'])
+            ->whereIn('status', ['processing', 'to_ship', 'shipped', 'delivered'])
             ->select(
                 DB::raw('DATE(created_at) as date'),
                 DB::raw('SUM(total) as revenue'),

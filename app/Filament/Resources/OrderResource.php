@@ -75,10 +75,10 @@ class OrderResource extends Resource
                             ->label('Status')
                             ->options([
                                 'pending_payment' => 'Pending Payment',
-                                'paid_unconfirmed' => 'Paid (Unconfirmed)',
-                                'paid_confirmed' => 'Paid (Confirmed)',
                                 'processing' => 'Processing',
+                                'to_ship' => 'To Ship',
                                 'shipped' => 'Shipped',
+                                'delivered' => 'Delivered',
                                 'cancelled' => 'Cancelled',
                             ])
                             ->required()
@@ -338,11 +338,10 @@ class OrderResource extends Resource
                     ->badge()
                     ->color(fn ($state) => match($state) {
                         'pending_payment' => 'warning',
-                        'paid_unconfirmed' => 'info',
-                        'paid_confirmed' => 'success',
-                        'change' => 'info',
                         'processing' => 'info',
-                        'shipped' => 'success',
+                        'to_ship' => 'info',
+                        'shipped' => 'primary',
+                        'delivered' => 'success',
                         'cancelled' => 'danger',
                         default => 'gray',
                     })
@@ -370,10 +369,10 @@ class OrderResource extends Resource
                     ->label('Status')
                     ->options([
                         'pending_payment' => 'Pending Payment',
-                        'paid_unconfirmed' => 'Paid (Unconfirmed)',
-                        'paid_confirmed' => 'Paid (Confirmed)',
                         'processing' => 'Processing',
+                        'to_ship' => 'To Ship',
                         'shipped' => 'Shipped',
+                        'delivered' => 'Delivered',
                         'cancelled' => 'Cancelled',
                     ]),
             ])

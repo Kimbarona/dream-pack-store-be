@@ -18,10 +18,10 @@ class Order extends Model
 
     public const STATUSES = [
         'pending_payment' => 'Pending Payment',
-        'paid_unconfirmed' => 'Paid (Unconfirmed)',
-        'paid_confirmed' => 'Paid (Confirmed)',
         'processing' => 'Processing',
+        'to_ship' => 'To Ship',
         'shipped' => 'Shipped',
+        'delivered' => 'Delivered',
         'cancelled' => 'Cancelled',
     ];
 
@@ -102,7 +102,7 @@ class Order extends Model
 
     public function isPaid()
     {
-        return in_array($this->status, ['paid_confirmed', 'processing', 'shipped']);
+        return in_array($this->status, ['processing', 'to_ship', 'shipped', 'delivered']);
     }
 
     public function isPendingPayment()
@@ -112,12 +112,12 @@ class Order extends Model
 
     public function isPaidUnconfirmed()
     {
-        return $this->status === 'paid_unconfirmed';
+        return false;
     }
 
     public function canBeCancelled()
     {
-        return in_array($this->status, ['pending_payment', 'paid_unconfirmed']);
+        return in_array($this->status, ['pending_payment', 'processing']);
     }
 
     public function getFormattedTotalAttribute()
@@ -137,7 +137,7 @@ class Order extends Model
 
     public function getIsCompletedAttribute()
     {
-        return in_array($this->status, ['shipped', 'cancelled']);
+        return in_array($this->status, ['delivered', 'cancelled']);
     }
 
     public function getTotalItemsAttribute()
@@ -195,14 +195,24 @@ class Order extends Model
         return $this->transitionStatus('shipped');
     }
 
+    public function markAsToShip()
+    {
+        return $this->transitionStatus('to_ship');
+    }
+
+    public function markAsDelivered()
+    {
+        return $this->transitionStatus('delivered');
+    }
+
     public function markAsPaidUnconfirmed()
     {
-        return $this->transitionStatus('paid_unconfirmed');
+        return $this->transitionStatus('processing');
     }
 
     public function markAsPaidConfirmed()
     {
-        return $this->transitionStatus('paid_confirmed');
+        return $this->transitionStatus('processing');
     }
 
     public function recalculateTotals()

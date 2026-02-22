@@ -21,7 +21,7 @@ class TopProductsWidget extends StatsOverviewWidget
             return Product::select('products.id', 'products.title', DB::raw('SUM(order_items.quantity) as total_sold'))
                 ->join('order_items', 'products.id', '=', 'order_items.product_id')
                 ->join('orders', 'order_items.order_id', '=', 'orders.id')
-                ->whereIn('orders.status', ['paid_confirmed', 'processing', 'shipped'])
+                ->whereIn('orders.status', ['processing', 'to_ship', 'shipped', 'delivered'])
                 ->where('orders.created_at', '>=', now()->subDays(30))
                 ->where('products.is_active', true)
                 ->groupBy('products.id', 'products.title')
@@ -59,7 +59,7 @@ class TopProductsWidget extends StatsOverviewWidget
     {
         $totalSold = Product::join('order_items', 'products.id', '=', 'order_items.product_id')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->whereIn('orders.status', ['paid_confirmed', 'processing', 'shipped'])
+            ->whereIn('orders.status', ['processing', 'to_ship', 'shipped', 'delivered'])
             ->where('orders.created_at', '>=', now()->subDays(30))
             ->sum('order_items.quantity');
             

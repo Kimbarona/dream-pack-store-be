@@ -9,6 +9,7 @@ use App\Models\ProductVariant;
 use App\Models\ProductVariantImage;
 use App\Models\PackOption;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -19,6 +20,16 @@ class EditProduct extends EditRecord
     use HasBackAction;
     
     protected static string $resource = ProductResource::class;
+
+    private function generateUniqueSku(string $prefix = 'SP'): string
+    {
+        do {
+            $number = str_pad(random_int(1, 99999999), 8, '0', STR_PAD_LEFT);
+            $sku = $prefix . $number;
+        } while (ProductVariant::where('sku', $sku)->exists());
+        
+        return $sku;
+    }
 
     public function form(Form $form): Form
     {
@@ -72,6 +83,14 @@ class EditProduct extends EditRecord
                 // Update existing variant
                 $variant = ProductVariant::find($variantId);
                 if ($variant && $variant->product_id === $product->id) {
+                    // Check if SKU is being changed and if new SKU already exists
+                    if (!empty($variantData['sku']) && $variantData['sku'] !== $variant->sku) {
+                        if (ProductVariant::where('sku', $variantData['sku'])->where('id', '!=', $variantId)->exists()) {
+                            $variantData['sku'] = $this->generateUniqueSku();
+                        }
+                    } elseif (empty($variantData['sku'])) {
+                        $variantData['sku'] = $this->generateUniqueSku();
+                    }
                     $variant->update($variantData);
                     $newVariantIds[] = $variantId;
                     
@@ -80,6 +99,9 @@ class EditProduct extends EditRecord
                 }
             } else {
                 // Create new variant
+                if (empty($variantData['sku'])) {
+                    $variantData['sku'] = $this->generateUniqueSku();
+                }
                 $variant = $product->variants()->create($variantData);
                 $newVariantIds[] = $variant->id;
                 
@@ -133,11 +155,16 @@ class EditProduct extends EditRecord
         $packOption = PackOption::where('value', $product->pieces_per_package ?? 1)->first() 
                     ?? PackOption::where('value', 1)->first();
         
+        $sku = $productData['sku'] ?? null;
+        if (!$sku || ProductVariant::where('sku', $sku)->exists()) {
+            $sku = $this->generateUniqueSku();
+        }
+        
         $product->variants()->create([
             'color_id' => null,
             'size_id' => null,
             'pack_option_id' => $packOption?->id,
-            'sku' => $productData['sku'] ?? $product->slug . '-default',
+            'sku' => $sku,
             'price' => $productData['price'] ?? 0,
             'sale_price' => $productData['sale_price'] ?? null,
             'stock_qty' => $productData['stock_qty'] ?? 0,
